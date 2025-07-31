@@ -9,6 +9,12 @@ import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
 import GameExplainModal from '@/components/GameExplainModal';
 
+interface RoomStatus {
+    id: string;
+    name: string;
+    participantCount: number;
+}
+
 // --- Main Page Component ---
 export default function MainPage() {
   const [account, setAccount] = useState<string | null>(null);
@@ -17,6 +23,7 @@ export default function MainPage() {
   const [isExplainModalVisible, setIsExplainModalVisible] = useState(false);
   const [mainDeadline, setMainDeadline] = useState<string | null>(null);
   const [mainGlobalRoundId, setMainGlobalRoundId] = useState<number | null>(null);
+  const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
   const router = useRouter();
   const entrySectionRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +50,26 @@ export default function MainPage() {
     fetchMainData();
     // Refresh timer data periodically
     const interval = setInterval(fetchMainData, 10000); // every 10 seconds
-    return () => clearInterval(interval);
+
+    const fetchRoomStatuses = async () => {
+        try {
+            const response = await fetch(`http://localhost:3001/rooms/status`);
+            if (response.ok) {
+                const data = await response.json();
+                setRoomStatuses(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch room statuses:", error);
+        }
+    };
+
+    fetchRoomStatuses();
+    const statusInterval = setInterval(fetchRoomStatuses, 5000); // 5초마다 참여자 수 갱신
+
+    return () => {
+        clearInterval(interval);
+        clearInterval(statusInterval);
+    };
   }, []);
 
   // Fetch balance whenever account changes
@@ -127,11 +153,17 @@ export default function MainPage() {
   }, []);
 
   const participationOptions = [
-    { id: '1', amount: 1, participants: '1,144,999' },
-    { id: '2', amount: 10, participants: '1,144,999' },
-    { id: '3', amount: 50, participants: '1,144,999' },
-    { id: '4', amount: 100, participants: '1,144,999' },
-  ];
+    { id: '1', amount: 1 },
+    { id: '2', amount: 10 },
+    { id: '3', amount: 50 },
+    { id: '4', amount: 100 },
+  ].map(option => {
+    const status = roomStatuses.find(s => s.id === option.id);
+    return {
+        ...option,
+        participants: status ? status.participantCount.toLocaleString() : 'Loading...'
+    };
+  });
 
   return (
     <div className="bg-[#1a1a2e] min-h-screen text-white font-sans bg-[url('/bg.png')] bg-[length:100%_100%] bg-fixed">
