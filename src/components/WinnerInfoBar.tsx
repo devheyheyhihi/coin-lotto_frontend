@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = '/api';
 
 interface Room {
     id: string;

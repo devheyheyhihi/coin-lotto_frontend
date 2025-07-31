@@ -32,7 +32,7 @@ export default function MainPage() {
     const fetchMainData = async () => {
       try {
         // We'll use room '1' as the reference for the main page timer.
-        const response = await fetch(`http://localhost:3001/lottery-status/1`);
+        const response = await fetch(`/api/lottery-status/1`);
         if (response.ok) {
           const data = await response.json();
           setMainGlobalRoundId(data.globalRoundId);
@@ -78,7 +78,7 @@ export default function MainPage() {
       const fetchBalance = async () => {
         try {
           console.log("account:", account);
-          const response = await fetch(`http://localhost:3001/balance/${account}`);
+          const response = await fetch(`/api/balance/${account}`);
           if (response.ok) {
             const data = await response.json();
             console.log("response.ok:", data);
