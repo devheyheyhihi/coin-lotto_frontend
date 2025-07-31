@@ -8,14 +8,6 @@ import EntrySection from '@/components/EntrySection';
 import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
 import GameExplainModal from '@/components/GameExplainModal';
-import { log } from 'console';
-
-// --- Type Definitions ---
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
 
 // --- Main Page Component ---
 export default function MainPage() {
@@ -93,7 +85,7 @@ export default function MainPage() {
     // If no account, proceed with connection logic
     if (typeof window.ethereum !== 'undefined') {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
         setAccount(accounts[0]);
       } catch (err) {
         console.error('Failed to connect wallet.', err);
@@ -116,18 +108,19 @@ export default function MainPage() {
       setAccount(accounts.length > 0 ? accounts[0] : null);
     };
 
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    const ethereum = window.ethereum;
+    if (ethereum) {
+      ethereum.on('accountsChanged', handleAccountsChanged);
       // Check for existing accounts on initial load
       (async () => {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
         handleAccountsChanged(accounts);
       })();
 
       return () => {
         // Clean up the event listener
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        if (ethereum.removeListener) {
+          ethereum.removeListener('accountsChanged', handleAccountsChanged);
         }
       };
     }
@@ -171,7 +164,6 @@ export default function MainPage() {
       {isExplainModalVisible && (
         <GameExplainModal 
           onClose={() => setIsExplainModalVisible(false)}
-          onConnectWallet={connectWallet}
         />
       )}
     </div>

@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ethers } from 'ethers';
-import { useParams, useRouter } from 'next/navigation';
-import lotteryABIFile from '../../../abis/Lottery.json';
+import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
@@ -12,22 +10,9 @@ import GameExplainModal from '@/components/GameExplainModal';
 
 // --- Constants ---
 const BNB_CHAIN_ID = '0x61';
-const USDT_CONTRACT_ADDRESS = '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd';
 const API_BASE_URL = 'http://localhost:3001';
-const usdtABI = [
-    "function approve(address spender, uint256 amount) public returns (bool)",
-    "function allowance(address owner, address spender) public view returns (uint256)",
-    "function balanceOf(address account) public view returns (uint256)",
-    "function transfer(address to, uint256 amount) public returns (bool)",
-    "function transferFrom(address from, address to, uint256 amount) public returns (bool)",
-    "function name() public view returns (string)",
-    "function symbol() public view returns (string)",
-    "function decimals() public view returns (uint8)"
-];
-const lotteryABI = lotteryABIFile.abi;
 
 // --- Type Definitions ---
-declare global { interface Window { ethereum?: any; }}
 
 interface LogEntry {
     id: number;
@@ -61,7 +46,6 @@ interface RoomConfig {
 // --- Main Component ---
 export default function RoomPage() {
     const params = useParams();
-    const router = useRouter();
     const roomId = params.roomId as string;
 
     const [account, setAccount] = useState<string | null>(null);
@@ -84,39 +68,6 @@ export default function RoomPage() {
 
     const prevRoundIdRef = useRef<number | null>(null);
     const logContainerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (lotteryStatus && lotteryStatus.globalRoundId !== prevRoundIdRef.current) {
-            setHasAnimationRun(false);
-            prevRoundIdRef.current = lotteryStatus.globalRoundId;
-        }
-    }, [lotteryStatus]);
-
-    useEffect(() => {
-        if (!lotteryStatus?.deadline || lotteryStatus.status !== 'OPEN') {
-            return;
-        }
-
-        const interval = setInterval(() => {
-            const now = new Date();
-            const deadlineTime = new Date(lotteryStatus.deadline);
-            const diff = deadlineTime.getTime() - now.getTime();
-
-            if (diff <= 0) {
-                // Optionally trigger a status refresh
-                fetchStatus();
-                return;
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [lotteryStatus]);
-
-    useEffect(() => {
-        if (logContainerRef.current) {
-            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-        }
-    }, [displayedLogs]);
 
     const addFrontendLog = useCallback((type: LogEntry['type'], message: string) => {
         const newLog: LogEntry = { id: Math.random() * -100000, type, message, timestamp: new Date().toISOString() };
@@ -157,14 +108,47 @@ export default function RoomPage() {
                 });
             }
 
-        } catch (error: any) {
-            setError(error.message);
+        } catch (err) {
+            setError((err as Error).message);
         }
-    }, [isAnimationRunning, roomId, roomConfig, addFrontendLog]);
+    }, [isAnimationRunning, roomId, roomConfig]);
 
-    const checkNetwork = useCallback(async () => {
+    useEffect(() => {
+        if (lotteryStatus && lotteryStatus.globalRoundId !== prevRoundIdRef.current) {
+            setHasAnimationRun(false);
+            prevRoundIdRef.current = lotteryStatus.globalRoundId;
+        }
+    }, [lotteryStatus]);
+
+    useEffect(() => {
+        if (!lotteryStatus?.deadline || lotteryStatus.status !== 'OPEN') {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const deadlineTime = new Date(lotteryStatus.deadline);
+            const diff = deadlineTime.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                // Optionally trigger a status refresh
+                fetchStatus();
+                return;
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [lotteryStatus, fetchStatus]);
+
+    useEffect(() => {
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+    }, [displayedLogs]);
+
+
+    const checkNetwork = useCallback(async (chainId: string) => {
         if (window.ethereum) {
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
             setIsCorrectNetwork(chainId === BNB_CHAIN_ID);
         }
     }, []);
@@ -174,17 +158,18 @@ export default function RoomPage() {
             const newAccount = accounts.length > 0 ? accounts[0] : null;
             setAccount(newAccount);
         };
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', handleAccountsChanged);
-            window.ethereum.on('chainChanged', checkNetwork);
+        const ethereum = window.ethereum;
+        if (ethereum) {
+            ethereum.on('accountsChanged', handleAccountsChanged);
+            ethereum.on('chainChanged', checkNetwork);
             (async () => {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
                 handleAccountsChanged(accounts);
-                await checkNetwork();
+                await checkNetwork(await ethereum.request({ method: 'eth_chainId' }) as string);
             })();
             return () => {
-                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-                window.ethereum.removeListener('chainChanged', checkNetwork);
+                ethereum.removeListener('accountsChanged', handleAccountsChanged);
+                ethereum.removeListener('chainChanged', checkNetwork);
             };
         }
     }, [checkNetwork]);
@@ -287,9 +272,9 @@ export default function RoomPage() {
     const connectWallet = async () => {
         if (!window.ethereum) return setError('Please install MetaMask.');
         try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
             setAccount(accounts[0]);
-        } catch (error) { setError('Failed to connect wallet.'); }
+        } catch { setError('Failed to connect wallet.'); }
     };
 
     const handleOpenMyPage = () => {
@@ -323,8 +308,8 @@ export default function RoomPage() {
             setBalance(data.newBalance);
             await fetchStatus();
 
-        } catch (error: any) {
-            setError(`Participation failed: ${error.message}`);
+        } catch (err) {
+            setError(`Participation failed: ${(err as Error).message}`);
         } finally {
             setIsProcessing(false);
         }
@@ -440,7 +425,6 @@ export default function RoomPage() {
             {isExplainModalVisible && (
                 <GameExplainModal 
                     onClose={() => setIsExplainModalVisible(false)}
-                    onConnectWallet={connectWallet}
                 />
             )}
         </div>

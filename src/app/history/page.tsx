@@ -3,13 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-// Extends the window object to use a browser wallet provider like MetaMask.
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 const API_BASE_URL = 'http://localhost:3001';
 
 interface HistoryItem {
@@ -37,8 +30,8 @@ export default function HistoryPage() {
             }
             const data = await response.json();
             setHistory(data.history || []);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError((err as Error).message);
             setHistory([]);
         } finally {
             setIsLoading(false);
@@ -48,10 +41,10 @@ export default function HistoryPage() {
     const connectWallet = async () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
                 setAccount(accounts[0]);
                 fetchHistory(accounts[0]);
-            } catch (err) {
+            } catch {
                 setError('Failed to connect wallet.');
             }
         } else {
@@ -70,14 +63,15 @@ export default function HistoryPage() {
             }
         };
 
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', handleAccountsChanged);
+        const ethereum = window.ethereum;
+        if (ethereum) {
+            ethereum.on('accountsChanged', handleAccountsChanged);
             (async () => {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
                 handleAccountsChanged(accounts);
             })();
             return () => {
-                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+                ethereum.removeListener('accountsChanged', handleAccountsChanged);
             };
         }
     }, [fetchHistory]);

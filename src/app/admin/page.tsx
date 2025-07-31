@@ -35,8 +35,8 @@ const AdminPage = () => {
             }
             const data = await response.json();
             setWithdrawals(data);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError((err as Error).message);
         } finally {
             setIsLoading(false);
         }
@@ -65,8 +65,8 @@ const AdminPage = () => {
             alert(`Approval successful! TxHash: ${data.txHash}`);
             fetchWithdrawals();
 
-        } catch (err: any) {
-            setError(`Failed to approve ID ${withdrawalId}: ${err.message}`);
+        } catch (err) {
+            setError(`Failed to approve ID ${withdrawalId}: ${(err as Error).message}`);
         } finally {
             setProcessingId(null);
         }
@@ -85,9 +85,9 @@ const AdminPage = () => {
             } else {
                 throw new Error(data.message || "An unknown error occurred on the server.");
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to start draws:", err);
-            setDrawError(`Error: ${err.message}`);
+            setDrawError(`Error: ${(err as Error).message}`);
         } finally {
             setIsDrawProcessing(false);
         }

@@ -32,15 +32,6 @@ interface MyPageModalProps {
     onBalanceUpdate: (newBalance: number) => void; // 부모의 잔액을 업데이트할 함수
 }
 
-// --- 추가 Type Definition ---
-interface Transaction {
-    type: 'DEPOSIT' | 'WITHDRAWAL' | 'PLAY' | 'WIN' | 'WITHDRAW_REQUEST' | 'WITHDRAW_COMPLETE';
-    amount: number;
-    timestamp: string;
-    related_round_id?: number;
-    tx_hash?: string;
-}
-
 // --- MyPage Modal Component ---
 const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModalProps) => {
     const [activeMainTab, setActiveMainTab] = useState('history'); // 'history' or 'wallet'
@@ -53,29 +44,10 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
     const [historyError, setHistoryError] = useState<string | null>(null);
 
     // --- Wallet Tab States ---
-    const [isLoadingBalance, setIsLoadingBalance] = useState(false); // 초기 로딩은 부모가 하므로 false
     const [activeWalletTab, setActiveWalletTab] = useState('deposit'); // 'deposit', 'withdraw', 'transactions'
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
     const [amount, setAmount] = useState(''); // For deposit/withdraw input
     const [isProcessing, setIsProcessing] = useState(false); // For transaction processing state
     const [walletError, setWalletError] = useState<string | null>(null);
-
-
-    // Fetch user transaction history
-    useEffect(() => {
-        if (account && activeWalletTab === 'transactions') {
-            const fetchTransactions = async () => {
-                setIsLoadingTransactions(true);
-                // Assume a new endpoint /transactions/:address exists
-                // const res = await fetch(`${API_BASE_URL}/transactions/${account}`);
-                // const data = await res.json();
-                // setTransactions(data.transactions || []);
-                setIsLoadingTransactions(false);
-            };
-            // fetchTransactions();
-        }
-    }, [account, activeWalletTab]);
 
     // Fetch game history
     useEffect(() => {
@@ -102,14 +74,14 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
                     setActiveRoomId(roomsData[0].id);
                 }
 
-            } catch (err: any) {
-                setHistoryError(err.message);
+            } catch (err) {
+                setHistoryError((err as Error).message);
             } finally {
                 setIsLoadingHistory(false);
             }
         };
         fetchHistoryAndRooms();
-    }, [account, activeMainTab]);
+    }, [account, activeMainTab, activeRoomId]);
 
     const handleDeposit = async () => {
         if (!amount || parseFloat(amount) <= 0) {
@@ -153,8 +125,8 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
                 }
             }, 3000); 
 
-        } catch (err: any) {
-            setWalletError(err.reason || "An error occurred during deposit.");
+        } catch (err) {
+            setWalletError((err as { reason?: string }).reason || "An error occurred during deposit.");
         } finally {
             setIsProcessing(false);
         }
@@ -190,8 +162,8 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
             onBalanceUpdate(data.newBalance); // 부모의 상태를 업데이트
             setAmount('');
 
-        } catch (err: any) {
-            setWalletError(err.message);
+        } catch (err) {
+            setWalletError((err as Error).message);
         } finally {
             setIsProcessing(false);
         }
@@ -263,11 +235,11 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
                             {/* Balance Display */}
                             <div className="mb-6">
                                 <h3 className="text-lg text-gray-400 mb-2">My Balance</h3>
-                                {isLoadingBalance ? (
+                                {/* isLoadingBalance ? (
                                     <div className="h-10 bg-gray-700 rounded-md animate-pulse"></div>
-                                ) : (
+                                ) : ( */}
                                     <p className="text-4xl font-bold text-yellow-400">{balance.toFixed(4)} <span className="text-2xl text-gray-300">USDT</span></p>
-                                )}
+                                {/* ) */}
                             </div>
 
                             {/* Wallet Sub-tabs */}
@@ -310,7 +282,7 @@ const MyPageModal = ({ account, onClose, balance, onBalanceUpdate }: MyPageModal
                             {/* Transaction List */}
                             {activeWalletTab === 'transactions' && (
                                 <div>
-                                    {isLoadingTransactions ? <p>Loading transactions...</p> : <p>Transaction history will be shown here.</p>}
+                                    {/* isLoadingTransactions ? <p>Loading transactions...</p> : <p>Transaction history will be shown here.</p> */}
                                 </div>
                             )}
                         </div>
