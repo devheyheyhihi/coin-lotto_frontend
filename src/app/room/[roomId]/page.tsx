@@ -10,7 +10,7 @@ import GameExplainModal from '@/components/GameExplainModal';
 
 // --- Constants ---
 const BNB_CHAIN_ID = '0x61';
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:3001';
 
 // --- Type Definitions ---
 

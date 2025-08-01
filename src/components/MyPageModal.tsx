@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import vaultAbiJson from '@/abis/Vault.json';
 
-const API_BASE_URL = '/api'; // This might need configuration
+const API_BASE_URL = 'http://localhost:3001'; // This might need configuration
 const VAULT_CONTRACT_ADDRESS = "0x43aFfaE1C51B04e772E69EfDd0453B0dC89EC3E6";
 const USDT_CONTRACT_ADDRESS = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"; 
 // ABIs would ideally be managed better, e.g., loading from JSON files.

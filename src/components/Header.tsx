@@ -48,12 +48,12 @@ const Header = ({ account, balance, connectWallet }: HeaderProps) => {
                 </button>
             </div>
         ) : (
-            <button
-              onClick={connectWallet}
-              className={buttonStyle}
-            >
+        <button
+          onClick={connectWallet}
+          className={buttonStyle}
+        >
               지갑 연결
-            </button>
+        </button>
         )}
       </nav>
     </header>

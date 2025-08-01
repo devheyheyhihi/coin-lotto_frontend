@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:3001';
 
 interface HistoryItem {
     roundNumber: number; // This is now the global_round_id

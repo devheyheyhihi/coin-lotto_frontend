@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '@/config';
 
 interface Room {
     id: string;
