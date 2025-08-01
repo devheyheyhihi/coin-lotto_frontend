@@ -24,6 +24,11 @@ const AdminPage = () => {
     const [drawError, setDrawError] = useState<string | null>(null);
     const [drawSuccessMessage, setDrawSuccessMessage] = useState<string | null>(null);
 
+    // Next Round states
+    const [nextRoundSuccessMessage, setNextRoundSuccessMessage] = useState<string | null>(null);
+    const [nextRoundError, setNextRoundError] = useState<string | null>(null);
+    const [isNextRoundProcessing, setIsNextRoundProcessing] = useState(false);
+
     const fetchWithdrawals = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -92,6 +97,26 @@ const AdminPage = () => {
         }
       };
 
+    const handleOpenNextRound = async () => {
+        setIsNextRoundProcessing(true);
+        setNextRoundError(null);
+        setNextRoundSuccessMessage(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/admin/open-next-round`, {
+                method: 'POST',
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to open next round.');
+            }
+            setNextRoundSuccessMessage(data.message);
+        } catch (error) {
+            setNextRoundError((error as Error).message);
+        } finally {
+            setIsNextRoundProcessing(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
             <div className="max-w-5xl mx-auto"> {/* 너비 약간 증가 */}
@@ -104,12 +129,21 @@ const AdminPage = () => {
                     <h2 className="text-2xl font-semibold text-yellow-300 mb-4">Global Round Control</h2>
                     {drawError && <p className="text-red-400 mb-4 p-3 bg-red-900/50 rounded-md">{drawError}</p>}
                     {drawSuccessMessage && <p className="text-green-400 mb-4 p-3 bg-green-900/50 rounded-md">{drawSuccessMessage}</p>}
+                    {nextRoundError && <p className="text-red-400 mb-4 p-3 bg-red-900/50 rounded-md">{nextRoundError}</p>}
+                    {nextRoundSuccessMessage && <p className="text-green-400 mb-4 p-3 bg-green-900/50 rounded-md">{nextRoundSuccessMessage}</p>}
         <button
             onClick={handleStartDrawAll}
                         disabled={isDrawProcessing}
                         className="px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-wait"
         >
                         {isDrawProcessing ? 'Initiating Draws...' : 'Start Draw For All Rooms'}
+        </button>
+        <button
+            onClick={handleOpenNextRound}
+            disabled={isNextRoundProcessing}
+            className="px-6 py-3 bg-green-600 text-white font-bold text-lg rounded-lg hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-wait"
+        >
+            {isNextRoundProcessing ? 'Opening Next Round...' : 'Open Next Round'}
         </button>
                 </div>
 

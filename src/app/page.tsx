@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAccount } from 'wagmi';
 import Header from "@/components/Header";
 import EntrySection from "@/components/EntrySection";
@@ -32,7 +32,7 @@ export default function Home() {
   const entrySectionRef = useRef<HTMLDivElement>(null);
 
   // Fetch user's off-chain balance
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
     if (!account) return;
     try {
       const response = await fetch(`${API_BASE_URL}/balance/${account}`);
@@ -46,7 +46,7 @@ export default function Home() {
       console.error("Failed to fetch balance:", error);
       setBalance(0);
     }
-  };
+  }, [account]);
   
   // Register user and fetch balance on account change
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function Home() {
       }
     };
     registerAndFetchBalance();
-  }, [account]);
+  }, [account, fetchBalance]);
 
   // Fetch real-time room participant counts and main deadline
   useEffect(() => {

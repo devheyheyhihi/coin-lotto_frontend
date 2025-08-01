@@ -57,7 +57,8 @@ const steps = [
 ];
 
 const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) => {
-    const [currentStep, setCurrentStep] = useState(0);
+    const [currentStep, setCurrentStep] = useState(1);
+    const totalSteps = 9;
 
     const handleNext = () => {
         setCurrentStep(prev => (prev + 1) % steps.length);
@@ -113,6 +114,19 @@ const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) =
                         ▶
                     </button>
                 </div>    
+                {currentStep === totalSteps && (
+                    <div className="flex justify-center mt-6">
+                        <button
+                            onClick={() => {
+                                onClose();
+                                onConnectWallet();
+                            }}
+                            className="rounded-full bg-gradient-to-r from-[#3A89E1] to-[#6336E0] px-8 py-3 font-bold text-lg text-white shadow-lg"
+                        >
+                            지갑 연결하고 시작하기
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

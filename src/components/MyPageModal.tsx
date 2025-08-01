@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useDisconnect, useBalance, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import usdtContractAbi from '@/abis/Usdt.json';
@@ -47,7 +47,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
 
-    const { address: account, isConnected, chain } = useAccount();
+    const { address: account, chain } = useAccount();
     const { disconnect } = useDisconnect();
     const { switchChain } = useSwitchChain();
     const { data: hash, error: writeError, isPending, writeContract } = useWriteContract();
@@ -59,23 +59,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
     });
     const usdtBalance = usdtBalanceData ? parseFloat(formatEther(usdtBalanceData.value)).toFixed(2) : '0.00';
 
-    useEffect(() => {
-        if (isConfirmed) {
-            alert("Transaction successful!");
-            fetchBalance();
-            setIsProcessing(false);
-            setAmount('');
-        }
-    }, [isConfirmed]);
-
-    useEffect(() => {
-        if (writeError) {
-            setWalletError(writeError.message.split('Contract Call')[0] || "An error occurred.");
-            setIsProcessing(false);
-        }
-    }, [writeError]);
-
-    const fetchBalance = async () => {
+    const fetchBalance = useCallback(async () => {
         if (!account) return;
         try {
             const response = await fetch(`${API_BASE_URL}/balance/${account}`);
@@ -86,8 +70,24 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
         } catch (error) {
             console.error('Failed to fetch balance:', error);
         }
-    };
-    
+    }, [account, onBalanceUpdate]);
+
+    useEffect(() => {
+        if (isConfirmed) {
+            alert("Transaction successful!");
+            fetchBalance();
+            setIsProcessing(false);
+            setAmount('');
+        }
+    }, [isConfirmed, fetchBalance]);
+
+    useEffect(() => {
+        if (writeError) {
+            setWalletError(writeError.message.split('Contract Call')[0] || "An error occurred.");
+            setIsProcessing(false);
+        }
+    }, [writeError]);
+
     // Fetch game history
     useEffect(() => {
         if (!account || activeMainTab !== 'history') return;
@@ -120,7 +120,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
             }
         };
         fetchHistoryAndRooms();
-    }, [account, activeMainTab]);
+    }, [account, activeMainTab, activeRoomId]);
     
     // Fetch user transaction history (for Wallet tab)
     useEffect(() => {
@@ -133,8 +133,8 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                     if (!res.ok) throw new Error('Failed to fetch transactions.');
                     const data = await res.json();
                     setTransactions(data.transactions || []);
-                } catch(err: any) {
-                    setWalletError(err.message);
+                } catch(err) {
+                    setWalletError(err instanceof Error ? err.message : "An unknown error occurred.");
                 } finally {
                     setIsLoadingTransactions(false);
                 }
@@ -180,7 +180,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
             functionName: 'approve',
             args: [VAULT_CONTRACT_ADDRESS, depositAmount],
         }, {
-            onSuccess: async (approveHash) => {
+            onSuccess: async () => {
                // This is a simplified flow. A truly robust version would use useWaitForTransactionReceipt here
                // before calling the next writeContract.
                // For this implementation, we proceed optimistically.
@@ -214,7 +214,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
             onBalanceUpdate(data.newBalance);
             setAmount('');
         } catch (err) {
-            setWalletError((err as Error).message);
+            setWalletError(err instanceof Error ? err.message : "Failed to submit withdrawal request.");
         } finally {
             setIsProcessing(false);
         }
