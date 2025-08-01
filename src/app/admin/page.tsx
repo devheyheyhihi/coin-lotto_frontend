@@ -16,7 +16,7 @@ const AdminPage = () => {
     // Withdrawal states
     const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
 
     // Draw states
@@ -38,8 +38,8 @@ const AdminPage = () => {
             setError((err as Error).message);
         } finally {
             setIsLoading(false);
-        }
-    }, []);
+    }
+  }, []);
 
     useEffect(() => {
         fetchWithdrawals();
@@ -48,7 +48,7 @@ const AdminPage = () => {
     const handleApprove = async (withdrawalId: number) => {
         setProcessingId(withdrawalId);
         setError(null);
-        try {
+      try {
             const response = await fetch(`${API_BASE_URL}/admin/withdrawals/approve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -68,26 +68,26 @@ const AdminPage = () => {
             setError(`Failed to approve ID ${withdrawalId}: ${(err as Error).message}`);
         } finally {
             setProcessingId(null);
-        }
-    };
+    }
+  };
 
-    const handleStartDrawAll = async () => {
+  const handleStartDrawAll = async () => {
         setIsDrawProcessing(true);
         setDrawError(null);
         setDrawSuccessMessage(null);
-        try {
-            const response = await fetch(`${API_BASE_URL}/start-draw-all`, { method: 'POST' });
-            const data = await response.json();
+    try {
+        const response = await fetch(`${API_BASE_URL}/start-draw-all`, { method: 'POST' });
+        const data = await response.json();
 
-            if (data.success) {
+        if (data.success) {
                 setDrawSuccessMessage(data.message || "Draw process for all rooms has been initiated.");
-            } else {
-                throw new Error(data.message || "An unknown error occurred on the server.");
-            }
+        } else {
+            throw new Error(data.message || "An unknown error occurred on the server.");
+        }
         } catch (err) {
-            console.error("Failed to start draws:", err);
+        console.error("Failed to start draws:", err);
             setDrawError(`Error: ${(err as Error).message}`);
-        } finally {
+    } finally {
             setIsDrawProcessing(false);
         }
       };
@@ -104,13 +104,13 @@ const AdminPage = () => {
                     <h2 className="text-2xl font-semibold text-yellow-300 mb-4">Global Round Control</h2>
                     {drawError && <p className="text-red-400 mb-4 p-3 bg-red-900/50 rounded-md">{drawError}</p>}
                     {drawSuccessMessage && <p className="text-green-400 mb-4 p-3 bg-green-900/50 rounded-md">{drawSuccessMessage}</p>}
-                    <button
-                        onClick={handleStartDrawAll}
+        <button
+            onClick={handleStartDrawAll}
                         disabled={isDrawProcessing}
                         className="px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-wait"
-                    >
+        >
                         {isDrawProcessing ? 'Initiating Draws...' : 'Start Draw For All Rooms'}
-                    </button>
+        </button>
                 </div>
 
                 {/* Section for Withdrawal Requests */}
@@ -121,8 +121,8 @@ const AdminPage = () => {
                     {error && (
                         <div className="bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-md mb-6">
                             <strong>Withdrawal Error:</strong> {error}
-                        </div>
-                    )}
+            </div>
+        )}
 
                     <div className="bg-gray-800/50 rounded-lg shadow-lg">
                         <div className="overflow-x-auto">
@@ -196,10 +196,10 @@ const AdminPage = () => {
                             </table>
                         </div>
                     </div>
-                </div>
+        </div>
             </div>
         </div>
-    );
+  );
 };
 
 export default AdminPage; 
