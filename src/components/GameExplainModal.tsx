@@ -5,7 +5,6 @@ import Image from 'next/image';
 
 interface GameExplainModalProps {
     onClose: () => void;
-    onConnectWallet: () => void;
 }
 
 const steps = [
@@ -56,7 +55,7 @@ const steps = [
     },
 ];
 
-const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) => {
+export default function GameExplainModal({ onClose }: GameExplainModalProps) {
     const [currentStep, setCurrentStep] = useState(0);
 
     const handleNext = () => {
@@ -116,6 +115,4 @@ const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) =
             </div>
         </div>
     );
-};
-
-export default GameExplainModal; 
+} 
