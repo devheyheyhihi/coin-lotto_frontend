@@ -65,7 +65,7 @@ export default function GameExplainModal({ onClose }: GameExplainModalProps) {
     const handlePrev = () => {
         setCurrentStep(prev => (prev - 1 + steps.length) % steps.length);
     };
-    
+
     const currentStepData = steps[currentStep];
 
     return (

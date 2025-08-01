@@ -31,7 +31,7 @@ const Header = ({ account, balance, connectWallet }: HeaderProps) => {
         />
       </Link>
       <nav className="flex items-center space-x-2 md:space-x-4">
-        <Link href="/how-to-play" className="text-sm text-white hover:text-gray-300 md:text-base md:hover:text-white">
+        <Link href="/#" className="text-sm text-white hover:text-gray-300 md:text-base md:hover:text-white">
           참여 방법
         </Link>
 

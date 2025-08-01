@@ -1,13 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async rewrites() {
-        return [
-          {
-            source: '/api/:path*',
-            destination: 'http://localhost:3001/:path*',
-          },
-        ]
-    },
+    // Your other Next.js config options...
+    
 };
 
 module.exports = nextConfig; 

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-
-const API_BASE_URL = 'http://localhost:3001';
+import { API_BASE_URL } from '@/config';
 
 interface WithdrawalRequest {
     id: number;

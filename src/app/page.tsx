@@ -8,6 +8,7 @@ import EntrySection from '@/components/EntrySection';
 import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
 import GameExplainModal from '@/components/GameExplainModal';
+import { API_BASE_URL } from '@/config';
 
 interface RoomStatus {
     id: string;
@@ -32,7 +33,7 @@ export default function MainPage() {
     const fetchMainData = async () => {
       try {
         // We'll use room '1' as the reference for the main page timer.
-        const response = await fetch(`http://localhost:3001/lottery-status/1`);
+        const response = await fetch(`${API_BASE_URL}/lottery-status/1`);
         if (response.ok) {
           const data = await response.json();
           setMainGlobalRoundId(data.globalRoundId);
@@ -53,7 +54,7 @@ export default function MainPage() {
 
     const fetchRoomStatuses = async () => {
         try {
-            const response = await fetch(`http://localhost:3001/rooms/status`);
+            const response = await fetch(`${API_BASE_URL}/rooms/status`);
             if (response.ok) {
                 const data = await response.json();
                 setRoomStatuses(data);
@@ -78,7 +79,7 @@ export default function MainPage() {
       const fetchBalance = async () => {
         try {
           console.log("account:", account);
-          const response = await fetch(`http://localhost:3001/balance/${account}`);
+          const response = await fetch(`${API_BASE_URL}/balance/${account}`);
           if (response.ok) {
             const data = await response.json();
             console.log("response.ok:", data);

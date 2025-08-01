@@ -7,10 +7,10 @@ import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
 import Timer from '@/components/Timer';
 import GameExplainModal from '@/components/GameExplainModal';
+import { API_BASE_URL } from '@/config';
 
 // --- Constants ---
 const BNB_CHAIN_ID = '0x61';
-const API_BASE_URL = 'http://localhost:3001';
 
 // --- Type Definitions ---
 
