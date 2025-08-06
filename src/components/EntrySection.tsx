@@ -1,7 +1,10 @@
 'use client';
 
 import { forwardRef } from 'react';
+import Image from 'next/image'; // Image 컴포넌트 임포트
 import Timer from './Timer';
+import SpinningNumbers from './SpinningNumbers'; // 새로 만든 컴포넌트 임포트
+import RouletteSection from './RouletteSection';
 
 interface EntrySectionProps {
   participationOptions: { id: string; amount: number; participants: string }[];
@@ -19,17 +22,20 @@ const EntrySection = forwardRef<HTMLDivElement, EntrySectionProps>(
             <h2 className="text-2xl font-bold">{globalRoundId ? `${globalRoundId}회` : '...'}</h2>
           </div>
           <div className="bg-[linear-gradient(#42529E,#3C509E,#3C509E80,#08369A00)] py-10">
-            <span className="font-['Pretendard'] text-xl font-semibold leading-normal text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.25)]">2025.07.23</span>
-            <Timer 
-              deadline={deadline}
-              containerClassName="flex justify-center items-center font-['LABDigital'] text-[64px] font-normal leading-normal text-[#2BF7FF]"
-              digitClassName="w-20"
-            />
+            <div className="hidden md:block">
+              <Timer 
+                deadline={deadline}
+                showDate={true}
+                dateClassName="font-['Pretendard'] text-xl font-semibold leading-normal text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.25)] mb-2"
+                containerClassName="flex justify-center items-center font-['LABDigital'] text-[64px] font-normal leading-normal text-[#2BF7FF]"
+                digitClassName="w-20"
+              />
+            </div>
           </div>
           
           <div className="px-6 pb-8 md:px-12 lg:px-24">
             {/* Participation Options */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-4">
               {participationOptions.map((option, index) => {
                 const fromColors = [
                   "from-[#25228A]",     // Blue
@@ -80,6 +86,8 @@ const EntrySection = forwardRef<HTMLDivElement, EntrySectionProps>(
               })}
             </div>
           </div>
+
+          <RouletteSection />
         </div>
       </div>
     );

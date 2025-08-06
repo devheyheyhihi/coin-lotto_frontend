@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.84.0",
+    "@tanstack/react-query": "^5.84.1",
     "@web3modal/wagmi": "^5.1.11",
     "ethers": "^6.15.0",
+    "jwt-decode": "^4.0.0",
     "next": "15.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",

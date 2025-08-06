@@ -1,14 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAccount, useDisconnect, useBalance, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
-import usdtContractAbi from '@/abis/Usdt.json';
-import vaultContractAbi from '@/abis/Vault.json';
-import { API_BASE_URL, CHAIN_CONFIG } from '@/config';
-
-const USDT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_USDT_CONTRACT_ADDRESS || "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd";
-const VAULT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS || "0x43aFfaE1C51B04e772E69EfDd0453B0dC89EC3E6";
+import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL, VAULT_CONTRACT_ADDRESS } from '@/config';
 
 // --- Type Definitions ---
 interface HistoryItem {
@@ -22,199 +16,116 @@ interface Room {
 }
 interface Transaction {
     id: number;
-    type: 'DEPOSIT' | 'WITHDRAW' | 'PARTICIPATE' | 'WIN';
+    type: 'DEPOSIT' | 'WITHDRAW' | 'PARTICIPATE' | 'WIN' | 'WITHDRAW_REQUEST' | 'WITHDRAW_COMPLETE';
     amount: number;
-    timestamp: string; // From backend
+    timestamp: string;
     tx_hash?: string;
 }
 interface MyPageModalProps {
     onClose: () => void;
-    balance: number;
-    onBalanceUpdate: (newBalance: number) => void;
 }
 
-const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) => {
+const MyPageModal = ({ onClose }: MyPageModalProps) => {
+    // --- UI State Management ---
     const [activeMainTab, setActiveMainTab] = useState('history');
+    const [activeWalletTab, setActiveWalletTab] = useState('deposit');
+    const [activeRoomId, setActiveRoomId] = useState<string>('');
+    const [amount, setAmount] = useState('');
+    
+    // --- Data and API State ---
+    const [balance, setBalance] = useState(0);
     const [allHistory, setAllHistory] = useState<HistoryItem[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
-    const [activeRoomId, setActiveRoomId] = useState<string>('');
-    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-    const [historyError, setHistoryError] = useState<string | null>(null);
-    const [activeWalletTab, setActiveWalletTab] = useState('deposit');
-    const [amount, setAmount] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [walletError, setWalletError] = useState<string | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false); // For backend actions like withdrawal
 
-    const { address: account, chain } = useAccount();
-    const { disconnect } = useDisconnect();
-    const { switchChain } = useSwitchChain();
-    const { data: hash, error: writeError, isPending, writeContract } = useWriteContract();
-    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+    const { user, logout } = useAuth();
 
-    const { data: usdtBalanceData } = useBalance({
-        address: account,
-        token: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    });
-    const usdtBalance = usdtBalanceData ? parseFloat(formatEther(usdtBalanceData.value)).toFixed(2) : '0.00';
-
+    // --- Data Fetching Logic ---
     const fetchBalance = useCallback(async () => {
-        if (!account) return;
+        if (!user?.walletAddress) return;
         try {
-            const response = await fetch(`${API_BASE_URL}/balance/${account}`);
+            const response = await fetch(`${API_BASE_URL}/balance/${user.walletAddress}`);
             if (response.ok) {
                 const data = await response.json();
-                onBalanceUpdate(data.balance);
+                setBalance(data.balance);
             }
-        } catch (error) {
-            console.error('Failed to fetch balance:', error);
-        }
-    }, [account, onBalanceUpdate]);
+        } catch (err) { console.error('Failed to fetch balance:', err); }
+    }, [user?.walletAddress]);
 
     useEffect(() => {
-        if (isConfirmed) {
-            alert("Transaction successful!");
+        if (user?.walletAddress) {
             fetchBalance();
-            setIsProcessing(false);
-            setAmount('');
         }
-    }, [isConfirmed, fetchBalance]);
+    }, [user, fetchBalance]);
 
     useEffect(() => {
-        if (writeError) {
-            setWalletError(writeError.message.split('Contract Call')[0] || "An error occurred.");
-            setIsProcessing(false);
-        }
-    }, [writeError]);
-
-    // Fetch game history
-    useEffect(() => {
-        if (!account || activeMainTab !== 'history') return;
+        if (!user?.walletAddress) return;
         
-        const fetchHistoryAndRooms = async () => {
-            setIsLoadingHistory(true);
-            setHistoryError(null);
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
             try {
+                if (activeMainTab === 'history') {
                 const [historyRes, roomsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/user-history/${account}`),
+                        fetch(`${API_BASE_URL}/user-history/${user.walletAddress}`),
                     fetch(`${API_BASE_URL}/rooms`)
                 ]);
-
-                if (!historyRes.ok) throw new Error('Failed to fetch history.');
-                if (!roomsRes.ok) throw new Error('Failed to fetch rooms.');
-
+                    if (!historyRes.ok || !roomsRes.ok) throw new Error('Failed to fetch history data.');
                 const historyData = await historyRes.json();
                 const roomsData = await roomsRes.json();
-                
                 setAllHistory(historyData.history || []);
                 setRooms(roomsData || []);
                 if (roomsData.length > 0 && !activeRoomId) {
                     setActiveRoomId(roomsData[0].id);
                 }
-
-            } catch (err) {
-                setHistoryError((err as Error).message);
-            } finally {
-                setIsLoadingHistory(false);
-            }
-        };
-        fetchHistoryAndRooms();
-    }, [account, activeMainTab, activeRoomId]);
-    
-    // Fetch user transaction history (for Wallet tab)
-    useEffect(() => {
-        if (account && activeWalletTab === 'transactions') {
-            const fetchTransactions = async () => {
-                setIsLoadingTransactions(true);
-                setWalletError(null);
-                try {
-                    const res = await fetch(`${API_BASE_URL}/transactions/${account}`);
+                } else if (activeMainTab === 'wallet' && activeWalletTab === 'transactions') {
+                    const res = await fetch(`${API_BASE_URL}/transactions/${user.walletAddress}`);
                     if (!res.ok) throw new Error('Failed to fetch transactions.');
                     const data = await res.json();
                     setTransactions(data.transactions || []);
-                } catch(err) {
-                    setWalletError(err instanceof Error ? err.message : "An unknown error occurred.");
-                } finally {
-                    setIsLoadingTransactions(false);
                 }
-            };
-            fetchTransactions();
-        }
-    }, [account, activeWalletTab]);
-    
-    useEffect(() => {
-        setWalletError(null);
-        setAmount('');
-    }, [activeMainTab, activeWalletTab]);
+            } catch (err) {
+                setError((err as Error).message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [user, activeMainTab, activeWalletTab, activeRoomId]);
 
-    const handleDisconnect = () => {
-        disconnect();
+    // --- Event Handlers ---
+    const handleLogout = () => {
+        logout();
         onClose();
     };
-
-    const ensureCorrectNetwork = async (): Promise<boolean> => {
-        if (chain?.id.toString() !== CHAIN_CONFIG.id) {
-            try {
-                await switchChain({ chainId: parseInt(CHAIN_CONFIG.id, 16) });
-                return true;
-            } catch (error) {
-                setWalletError("Failed to switch network. Please switch to BNB Testnet manually.");
-                return false;
-            }
-        }
-        return true;
-    };
     
-    const handleDeposit = async () => {
-        if (!await ensureCorrectNetwork() || !amount) return;
-        
-        setIsProcessing(true);
-        setWalletError(null);
-        const depositAmount = parseEther(amount);
-
-        // Step 1: Approve
-        writeContract({
-            address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-            abi: usdtContractAbi.abi,
-            functionName: 'approve',
-            args: [VAULT_CONTRACT_ADDRESS, depositAmount],
-        }, {
-            onSuccess: async () => {
-               // This is a simplified flow. A truly robust version would use useWaitForTransactionReceipt here
-               // before calling the next writeContract.
-               // For this implementation, we proceed optimistically.
-                writeContract({
-                    address: VAULT_CONTRACT_ADDRESS as `0x${string}`,
-                    abi: vaultContractAbi.abi,
-                    functionName: 'deposit',
-                    args: [depositAmount],
-                });
-            },
-            onError: (err) => {
-                setWalletError(`Approval failed: ${err.message.split('Contract Call')[0]}`);
-                setIsProcessing(false);
-            }
-        });
-    };
-
     const handleWithdrawRequest = async () => {
-        if (!account || !amount) return;
+        if (!user?.walletAddress || !amount || parseFloat(amount) <= 0) {
+            setError("Please enter a valid amount.");
+            return;
+        }
         setIsProcessing(true);
-        setWalletError(null);
+        setError(null);
         try {
             const res = await fetch(`${API_BASE_URL}/withdrawals/request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userAddress: account, amount: parseFloat(amount) })
+                body: JSON.stringify({ 
+                    userAddress: user.walletAddress, 
+                    amount: parseFloat(amount) 
+                })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to submit withdrawal request.");
+
             alert("Withdrawal request submitted successfully!");
-            onBalanceUpdate(data.newBalance);
+            setBalance(data.newBalance);
             setAmount('');
         } catch (err) {
-            setWalletError(err instanceof Error ? err.message : "Failed to submit withdrawal request.");
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsProcessing(false);
         }
@@ -234,10 +145,10 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-3xl">&times;</button>
                 </div>
                 <div className="flex justify-between items-center p-4 border-gray-700">
-                     <div className="flex gap-6">
+                    <div className="flex gap-6">
                          <button onClick={() => setActiveMainTab('history')} className={`text-xl font-semibold pb-2 ${activeMainTab === 'history' ? 'text-white border-b-2 border-white' : 'text-gray-500 hover:text-white'}`}>History</button>
                          <button onClick={() => setActiveMainTab('wallet')} className={`text-xl font-semibold pb-2 ${activeMainTab === 'wallet' ? 'text-white border-b-2 border-white' : 'text-gray-500 hover:text-white'}`}>Wallet</button>
-                     </div>
+                    </div>
                 </div>
 
                 {/* Content Area */}
@@ -255,8 +166,8 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                                     </button>
                                 ))}
                             </div>
-                            {isLoadingHistory ? <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto my-4"></div>
-                            : historyError ? <p className="text-red-500 text-center">{historyError}</p>
+                            {isLoading ? <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto my-4"></div>
+                            : error ? <p className="text-red-500 text-center">{error}</p>
                             : filteredHistory.length > 0 ? (
                                 <ul className="space-y-3 pr-2">
                                     {filteredHistory.map((item, index) => (
@@ -277,53 +188,59 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                         <div>
                              <div className="text-center mb-6 p-4 bg-black/20 rounded-lg">
                                  <p className="text-gray-400 text-sm">My Wallet Address</p>
-                                 <p className="font-mono text-lg text-white my-1">{account}</p>
-                                 <button onClick={handleDisconnect} className="text-sm text-red-500 hover:text-red-400 hover:underline">
-                                     Disconnect Wallet
+                                <div className="flex items-center justify-center gap-2">
+                                     <p className="font-mono text-xs md:text-lg text-white my-1 break-all">{user?.walletAddress}</p>
+                                     {user?.walletAddress && <CopyButton textToCopy={user.walletAddress} />}
+                                 </div>
+                                 <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-400 hover:underline mt-2">
+                                     Logout
                                  </button>
                              </div>
-                             <div className="mb-6">
-                                 <h3 className="text-lg text-gray-400 mb-2">My Balance</h3>
-                                 <p className="text-4xl font-bold text-yellow-400">{balance.toFixed(4)} <span className="text-2xl text-gray-300">USDT</span></p>
-                             </div>
-                             <div className="flex border-b border-gray-600 mb-4">
+                            <div className="mb-6">
+                                <h3 className="text-lg text-gray-400 mb-2">My Balance</h3>
+                                    <p className="text-4xl font-bold text-yellow-400">{balance.toFixed(4)} <span className="text-2xl text-gray-300">USDT</span></p>
+                            </div>
+                            <div className="flex border-b border-gray-600 mb-4">
                                  <button onClick={() => setActiveWalletTab('deposit')} className={`py-2 px-4 font-semibold transition-colors duration-200 ${activeWalletTab === 'deposit' ? 'border-b-2 border-yellow-400 text-yellow-400' : 'text-gray-400 hover:text-white'}`}>Deposit</button>
                                  <button onClick={() => setActiveWalletTab('withdraw')} className={`py-2 px-4 font-semibold transition-colors duration-200 ${activeWalletTab === 'withdraw' ? 'border-b-2 border-yellow-400 text-yellow-400' : 'text-gray-400 hover:text-white'}`}>Withdraw</button>
                                  <button onClick={() => setActiveWalletTab('transactions')} className={`py-2 px-4 font-semibold transition-colors duration-200 ${activeWalletTab === 'transactions' ? 'border-b-2 border-yellow-400 text-yellow-400' : 'text-gray-400 hover:text-white'}`}>Transactions</button>
-                             </div>
-                             {walletError && <p className="text-red-500 text-center mb-4">{walletError}</p>}
+                            </div>
                             
-                             {activeWalletTab === 'deposit' && (
-                                 <div className="space-y-4">
-                                     <p className="text-gray-300">Available to deposit: {usdtBalance} USDT</p>
-                                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full bg-gray-800 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400" />
-                                     <button onClick={handleDeposit} disabled={isProcessing || isPending || isConfirming} className="w-full bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-400 disabled:bg-gray-500">
-                                         {isProcessing || isPending || isConfirming ? 'Processing...' : 'Deposit USDT'}
-                                     </button>
-                                 </div>
-                             )}
+                             {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-                             {activeWalletTab === 'withdraw' && (
-                                  <div className="space-y-4">
+                            {activeWalletTab === 'deposit' && (
+                                 <div className="space-y-4 text-center">
+                                     <p className="text-gray-300">아래 주소로 USDT (BEP-20)를 보내주세요.</p>
+                                     <div className="p-3 bg-gray-900 rounded-md flex items-center justify-between">
+                                         <span className="text-yellow-400 font-mono text-sm break-all">{VAULT_CONTRACT_ADDRESS}</span>
+                                         <CopyButton textToCopy={VAULT_CONTRACT_ADDRESS} />
+                                     </div>
+                                     <p className="text-xs text-gray-500 pt-2">
+                                         반드시 BNB Smart Chain (BEP-20) 네트워크를 이용해주세요.<br/>
+                                         잘못된 네트워크로 전송된 자산은 복구할 수 없습니다.
+                                     </p>
+                                </div>
+                            )}
+
+                            {activeWalletTab === 'withdraw' && (
+                                <div className="space-y-4">
                                      <p className="text-gray-300">Available to withdraw: {balance.toFixed(4)} USDT</p>
-                                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full bg-gray-800 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400" />
-                                     <button onClick={handleWithdrawRequest} disabled={isProcessing} className="w-full bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-400 disabled:bg-gray-500">
-                                         {isProcessing ? 'Processing...' : 'Request Withdraw'}
-                                     </button>
-                                 </div>
-                             )}
-                            
+                                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full bg-gray-800 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                                    <button onClick={handleWithdrawRequest} disabled={isProcessing} className="w-full bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-400 disabled:bg-gray-500">
+                                        {isProcessing ? 'Processing...' : 'Request Withdraw'}
+                                    </button>
+                                </div>
+                            )}
+
                             {activeWalletTab === 'transactions' && (
                                  <div className="space-y-3 pr-2">
-                                     {isLoadingTransactions ? (
-                                         <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto my-4"></div>
-                                     ) : walletError ? (
-                                         <p className="text-red-500 text-center">{walletError}</p>
-                                     ) : transactions.length > 0 ? (
+                                     {isLoading ? <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto my-4"></div>
+                                     : error ? <p className="text-red-500 text-center">{error}</p>
+                                     : transactions.length > 0 ? (
                                          transactions.map((tx) => (
                                              <div key={tx.id} className="p-3 rounded-md bg-gray-800/50 flex justify-between items-center">
-                                                 <div>
-                                                     <p className="font-bold capitalize text-white">{tx.type.replace('_', ' ')}</p>
+                                <div>
+                                                     <p className="font-bold capitalize text-white">{tx.type.replace(/_/g, ' ')}</p>
                                                      <p className="text-xs text-gray-400">{new Date(tx.timestamp).toLocaleString()}</p>
                                                  </div>
                                                  <div className="text-right">
@@ -332,7 +249,7 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                                                      </p>
                                                      {tx.tx_hash && (
                                                          <a 
-                                                             href={`${CHAIN_CONFIG.blockExplorerUrl}/tx/${tx.tx_hash}`} 
+                                                             href={`https://testnet.bscscan.com/tx/${tx.tx_hash}`} 
                                                              target="_blank" 
                                                              rel="noopener noreferrer"
                                                              className="text-xs text-blue-400 hover:underline"
@@ -346,13 +263,37 @@ const MyPageModal = ({ onClose, balance, onBalanceUpdate }: MyPageModalProps) =>
                                      ) : (
                                          <p className="text-gray-500 text-center py-4">No transactions found.</p>
                                      )}
-                                 </div>
-                             )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
         </div>
+    );
+};
+
+const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        });
+    };
+
+    return (
+        <button onClick={handleCopy} className="p-2 rounded-md hover:bg-gray-700 transition-colors relative ml-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            {copied && (
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs rounded-md px-2 py-1">
+                    Copied!
+                </span>
+            )}
+        </button>
     );
 };
 

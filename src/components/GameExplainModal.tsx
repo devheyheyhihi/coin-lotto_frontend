@@ -5,7 +5,7 @@ import Image from 'next/image';
 
 interface GameExplainModalProps {
     onClose: () => void;
-    onConnectWallet: () => void;
+    onEnterGame: () => void;
 }
 
 const steps = [
@@ -56,16 +56,15 @@ const steps = [
     },
 ];
 
-const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) => {
-    const [currentStep, setCurrentStep] = useState(1);
-    const totalSteps = 9;
+const GameExplainModal = ({ onClose, onEnterGame }: GameExplainModalProps) => {
+    const [currentStep, setCurrentStep] = useState(0);
 
     const handleNext = () => {
-        setCurrentStep(prev => (prev + 1) % steps.length);
+        setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
     };
 
     const handlePrev = () => {
-        setCurrentStep(prev => (prev - 1 + steps.length) % steps.length);
+        setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
     };
 
     const currentStepData = steps[currentStep];
@@ -98,7 +97,7 @@ const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) =
                 </div>
 
                 <div className="flex justify-center items-center mt-6 md:mt-8">
-                    <button onClick={handlePrev} className="text-cyan-400 text-3xl p-2">
+                    <button onClick={handlePrev} className="text-cyan-400 text-3xl p-2 disabled:text-gray-600" disabled={currentStep === 0}>
                         ◀
                     </button>
                     <div className="flex gap-3 md:gap-4 mx-4 md:mx-6">
@@ -110,23 +109,21 @@ const GameExplainModal = ({ onClose, onConnectWallet }: GameExplainModalProps) =
                             />
                         ))}
                     </div>
-                    <button onClick={handleNext} className="text-cyan-400 text-3xl p-2">
+                    <button onClick={handleNext} className="text-cyan-400 text-3xl p-2 disabled:text-gray-600" disabled={currentStep === steps.length - 1}>
                         ▶
                     </button>
                 </div>    
-                {currentStep === totalSteps && (
-                    <div className="flex justify-center mt-6">
-                        <button
-                            onClick={() => {
-                                onClose();
-                                onConnectWallet();
-                            }}
-                            className="rounded-full bg-gradient-to-r from-[#3A89E1] to-[#6336E0] px-8 py-3 font-bold text-lg text-white shadow-lg"
-                        >
-                            지갑 연결하고 시작하기
-                        </button>
-                    </div>
-                )}
+                 <div className="flex justify-center mt-6">
+                    <button
+                        onClick={() => {
+                            onEnterGame();
+                            onClose();
+                        }}
+                        className="rounded-full bg-gradient-to-r from-[#3A89E1] to-[#6336E0] px-8 py-3 font-bold text-lg text-white shadow-lg"
+                    >
+                        {currentStep === steps.length - 1 ? '게임 시작하기' : '다음'}
+                    </button>
+                </div>
             </div>
         </div>
     );

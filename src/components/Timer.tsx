@@ -6,16 +6,28 @@ interface TimerProps {
   deadline: string | null;
   containerClassName?: string;
   digitClassName?: string;
+  colonClassName?: string;
+  showDate?: boolean;
+  dateClassName?: string;
 }
 
-const Timer = ({ deadline, containerClassName, digitClassName }: TimerProps) => {
+const Timer = ({ deadline, containerClassName, digitClassName, colonClassName, showDate, dateClassName }: TimerProps) => {
   const [timeLeft, setTimeLeft] = useState({
     hours: '--',
     minutes: '--',
     seconds: '--',
   });
+  const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
+    if (showDate) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        setCurrentDate(`${year}.${month}.${day}`);
+    }
+
     if (!deadline) {
       setTimeLeft({ hours: '--', minutes: '--', seconds: '--' });
       return;
@@ -44,15 +56,20 @@ const Timer = ({ deadline, containerClassName, digitClassName }: TimerProps) => 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [deadline]);
+  }, [deadline, showDate]);
 
   const totalSecondsLeft = deadline ? (new Date(deadline).getTime() - new Date().getTime()) / 1000 : 0;
 
   return (
-    <div className={containerClassName}>
-      <p className={`${digitClassName} ${totalSecondsLeft < 3600 ? 'text-gray-100' : ''}`}>{timeLeft.hours}</p>:
-      <p className={`${digitClassName} ${totalSecondsLeft < 60 ? 'text-gray-100' : ''}`}>{timeLeft.minutes}</p>:
-      <p className={`${digitClassName} ${totalSecondsLeft <= 0 ? 'text-gray-100' : ''}`}>{timeLeft.seconds}</p>
+    <div>
+      {showDate && <p className={dateClassName}>{currentDate}</p>}
+      <div className={containerClassName}>
+        <p className={`${digitClassName} ${totalSecondsLeft < 3600 ? 'text-gray-100' : ''}`}>{timeLeft.hours}</p>
+        <span className={colonClassName}>:</span>
+        <p className={`${digitClassName} ${totalSecondsLeft < 60 ? 'text-gray-100' : ''}`}>{timeLeft.minutes}</p>
+        <span className={colonClassName}>:</span>
+        <p className={`${digitClassName} ${totalSecondsLeft <= 0 ? 'text-gray-100' : ''}`}>{timeLeft.seconds}</p>
+      </div>
     </div>
   );
 };

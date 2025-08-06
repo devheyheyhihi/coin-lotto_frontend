@@ -10,4 +10,6 @@ export const CHAIN_CONFIG = {
         decimals: 18,
     },
     blockExplorerUrl: process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL || 'https://testnet.bscscan.com',
-}; 
+};
+
+export const VAULT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS || "0x43aFfaE1C51B04e772E69EfDd0453B0dC89EC3E6"; 

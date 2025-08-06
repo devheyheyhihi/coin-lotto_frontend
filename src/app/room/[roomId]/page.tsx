@@ -5,9 +5,11 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import SideMenu from '@/components/SideMenu';
 import MyPageModal from '@/components/MyPageModal';
+import LoginModal from '@/components/LoginModal';
 import Timer from '@/components/Timer';
 import GameExplainModal from '@/components/GameExplainModal';
 import { API_BASE_URL } from '@/config';
+import { useAuth } from '@/contexts/AuthContext';
 
 // --- Constants ---
 const BNB_CHAIN_ID = '0x61';
@@ -48,17 +50,19 @@ export default function RoomPage() {
     const params = useParams();
     const roomId = params.roomId as string;
 
-    const [account, setAccount] = useState<string | null>(null);
-    const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
+    const { user, token } = useAuth();
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [lotteryStatus, setLotteryStatus] = useState<LotteryRound | null>(null);
     const [roomConfig, setRoomConfig] = useState<RoomConfig | null>(null);
     const [displayedLogs, setDisplayedLogs] = useState<LogEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isMyPageVisible, setIsMyPageVisible] = useState(false);
+    const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
     const [isExplainModalVisible, setIsExplainModalVisible] = useState(false);
     const [pastWinners, setPastWinners] = useState<{ global_round_id: number; winner: string }[]>([]);
     const [balance, setBalance] = useState(0);
+    const [isAnimating, setIsAnimating] = useState(false); // 애니메이션 진행 상태 추가
 
     const logContainerRef = useRef<HTMLDivElement>(null);
     const prevStatusRef = useRef<LotteryRound | null>(null); // 이전 상태 기억
@@ -93,12 +97,13 @@ export default function RoomPage() {
     
     // --- New, Robust Animation Logic ---
     useEffect(() => {
-        if (!lotteryStatus) return; // 서버 데이터 없으면 종료
+        if (!lotteryStatus || isAnimating) return; // 서버 데이터 없거나 애니메이션 중이면 종료
 
         const prevStatus = prevStatusRef.current;
         
         // 애니메이션을 실행하는 함수 (내용은 이전과 동일)
         const animateLogs = async (logsToAnimate: LogEntry[], clearFirst: boolean) => {
+            setIsAnimating(true); // 애니메이션 시작
             if (clearFirst) {
                 setDisplayedLogs([]);
                 // 화면을 비운 후 잠깐의 딜레이를 주어 사용자가 인지하게 함
@@ -121,6 +126,7 @@ export default function RoomPage() {
                 }
                 await new Promise(res => setTimeout(res, delay));
             }
+            setIsAnimating(false); // 애니메이션 종료
         };
 
         // --- 시나리오 분기 ---
@@ -135,15 +141,15 @@ export default function RoomPage() {
             animateLogs(newLogs, false);
         }
         // 시나리오 3: 그 외 모든 경우 (새로고침, 재진입 등)
-        else {
-            // 애니메이션 없이 즉시 로그를 현재 상태로 동기화
+        else if (lotteryStatus.logs.length !== displayedLogs.length) {
+            // 애니메이션 없이 즉시 로그를 현재 상태로 동기화 (단, 로그 내용이 다를 때만)
             setDisplayedLogs(lotteryStatus.logs);
         }
 
         // 마지막에 현재 상태를 '이전 상태'로 기록
         prevStatusRef.current = lotteryStatus;
         
-    }, [lotteryStatus]); // 오직 lotteryStatus에만 의존하여 실행
+    }, [lotteryStatus, isAnimating, displayedLogs.length]); // 의존성 배열에 isAnimating 추가
 
     useEffect(() => {
         if (!lotteryStatus?.deadline || lotteryStatus.status !== 'OPEN') {
@@ -171,33 +177,6 @@ export default function RoomPage() {
     }, [displayedLogs]);
 
 
-    const checkNetwork = useCallback(async (chainId: string) => {
-        if (window.ethereum) {
-            setIsCorrectNetwork(chainId === BNB_CHAIN_ID);
-        }
-    }, []);
-
-    useEffect(() => {
-        const handleAccountsChanged = (accounts: string[]) => {
-            const newAccount = accounts.length > 0 ? accounts[0] : null;
-            setAccount(newAccount);
-        };
-        const ethereum = window.ethereum;
-        if (ethereum) {
-            ethereum.on('accountsChanged', handleAccountsChanged);
-            ethereum.on('chainChanged', checkNetwork);
-            (async () => {
-                const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
-                handleAccountsChanged(accounts);
-                await checkNetwork(await ethereum.request({ method: 'eth_chainId' }) as string);
-            })();
-            return () => {
-                ethereum.removeListener('accountsChanged', handleAccountsChanged);
-                ethereum.removeListener('chainChanged', checkNetwork);
-            };
-        }
-    }, [checkNetwork]);
-
     useEffect(() => {
         const fetchWinners = async () => {
             if (!roomId) return;
@@ -223,10 +202,10 @@ export default function RoomPage() {
 
     // Fetch balance whenever account changes
     useEffect(() => {
-        if (account) {
+        if (user?.walletAddress) {
             const fetchBalance = async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/balance/${account}`);
+                    const response = await fetch(`${API_BASE_URL}/balance/${user.walletAddress}`);
                     if (response.ok) {
                         const data = await response.json();
                         setBalance(data.balance);
@@ -240,26 +219,28 @@ export default function RoomPage() {
         } else {
             setBalance(0);
         }
-    }, [account]);
-
-    const connectWallet = async () => {
-        if (!window.ethereum) return setError('Please install MetaMask.');
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
-            setAccount(accounts[0]);
-        } catch { setError('Failed to connect wallet.'); }
-    };
+    }, [user]);
 
     const handleOpenMyPage = () => {
-        if (account) {
+        if (user) {
           setIsMyPageVisible(true);
         } else {
-          alert('Please connect your wallet first.');
+          setIsLoginModalVisible(true);
         }
     };
 
     const handleParticipate = async () => {
-        if (!account || !isCorrectNetwork || !roomConfig) return;
+        console.log('handleParticipate called');
+        console.log('user:', user);
+        console.log('token:', token);
+        console.log('isProcessing:', isProcessing);
+        console.log('lotteryStatus:', lotteryStatus?.status);
+
+        if (!user || !token) {
+            setIsLoginModalVisible(true);
+            return;
+        }
+        if (!roomConfig) return;
         
         setIsProcessing(true);
         setError(null);
@@ -267,8 +248,11 @@ export default function RoomPage() {
         try {
             const response = await fetch(`${API_BASE_URL}/participate/${roomId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userAddress: account })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({})
             });
 
             const data = await response.json();
@@ -345,10 +329,13 @@ export default function RoomPage() {
                     
                     <button
                         onClick={handleParticipate}
-                        disabled={isProcessing || lotteryStatus?.status !== 'OPEN' || !account || !isCorrectNetwork}
-                        className="w-full text-white font-bold p-3 rounded-lg border-2 border-cyan-400 bg-black/50 hover:bg-cyan-400/20 disabled:bg-gray-700 disabled:border-gray-500 disabled:text-gray-400"
+                        disabled={isProcessing || lotteryStatus?.status !== 'OPEN'}
+                        className="w-full text-white font-bold p-3 rounded-lg border-2 border-cyan-400 bg-black/50 hover:bg-cyan-400/20 disabled:bg-gray-700 disabled:border-gray-500 disabled:text-gray-400 transition-all"
                     >
-                        {lotteryStatus?.status === 'OPEN' && roomConfig ? `Participate (${roomConfig.ticketPrice} USDT)` : `Round is ${lotteryStatus?.status || 'Loading...'}`}
+                        {lotteryStatus?.status === 'OPEN' ? 
+                            (user ? `Participate (${roomConfig?.ticketPrice} USDT)`: 'Login to Participate')
+                             : `Round is ${lotteryStatus?.status || 'Loading...'}`
+                        }
                     </button>
 
                     {/* Participants list */}
@@ -386,18 +373,26 @@ export default function RoomPage() {
                 setIsExplainModalVisible(true)
             }} />
 
-            {isMyPageVisible && account && (
+            {isMyPageVisible && user && (
                 <MyPageModal
                     onClose={() => setIsMyPageVisible(false)}
-                    balance={balance}
-                    onBalanceUpdate={setBalance}
+                />
+            )}
+
+            {isLoginModalVisible && (
+                <LoginModal
+                    onClose={() => setIsLoginModalVisible(false)}
+                    onSignupClick={() => {
+                        setIsLoginModalVisible(false);
+                        // You might want to implement a signup modal visibility state here
+                    }}
                 />
             )}
 
             {isExplainModalVisible && (
                 <GameExplainModal 
                     onClose={() => setIsExplainModalVisible(false)}
-                    onConnectWallet={connectWallet}
+                    onEnterGame={() => setIsExplainModalVisible(false)}
                 />
             )}
         </div>
