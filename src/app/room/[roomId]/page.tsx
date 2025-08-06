@@ -63,9 +63,11 @@ export default function RoomPage() {
     const [pastWinners, setPastWinners] = useState<{ global_round_id: number; winner: string }[]>([]);
     const [balance, setBalance] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false); // 애니메이션 진행 상태 추가
+    const [countdown, setCountdown] = useState<number | null>(null); // 카운트다운 상태 추가
 
     const logContainerRef = useRef<HTMLDivElement>(null);
     const prevStatusRef = useRef<LotteryRound | null>(null); // 이전 상태 기억
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null); // 카운트다운 인터벌 ID 저장
 
     const addFrontendLog = useCallback((type: LogEntry['type'], message: string) => {
         const newLog: LogEntry = { id: Math.random() * -100000, type, message, timestamp: new Date().toISOString() };
@@ -104,29 +106,41 @@ export default function RoomPage() {
         // 애니메이션을 실행하는 함수 (내용은 이전과 동일)
         const animateLogs = async (logsToAnimate: LogEntry[], clearFirst: boolean) => {
             setIsAnimating(true); // 애니메이션 시작
+            
+            // --- Countdown Logic Start ---
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            let count = 5;
+            setCountdown(count);
+            countdownIntervalRef.current = setInterval(() => {
+                count--;
+                if (count >= 0) {
+                    setCountdown(count);
+                }
+                if (count < 0) {
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                }
+            }, 1000);
+            // --- Countdown Logic End ---
+
             if (clearFirst) {
                 setDisplayedLogs([]);
                 // 화면을 비운 후 잠깐의 딜레이를 주어 사용자가 인지하게 함
                 await new Promise(res => setTimeout(res, 100));
             }
 
-            const isDrawSequence = logsToAnimate.some(log => log.type === 'SPIN' || log.type === 'WINNER');
-            const totalLogs = logsToAnimate.length;
-
-            for (let i = 0; i < totalLogs; i++) {
+            for (let i = 0; i < logsToAnimate.length; i++) {
                 const log = logsToAnimate[i];
                 setDisplayedLogs(prev => [...prev, log]);
 
-                let delay = 100;
-                if (isDrawSequence) {
-                    const progress = (i + 1) / totalLogs;
-                    if (progress < 0.6) delay = 30;
-                    else if (progress < 0.9) delay = 45 + ((progress - 0.6) / 0.3 * 150);
-                    else delay = 500 + Math.random() * 500;
-                }
+                // 모든 로그에 일정한 딜레이 적용
+                const delay = 50; 
                 await new Promise(res => setTimeout(res, delay));
             }
             setIsAnimating(false); // 애니메이션 종료
+            
+            // --- Countdown Cleanup ---
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            setCountdown(null);
         };
 
         // --- 시나리오 분기 ---
@@ -297,7 +311,11 @@ export default function RoomPage() {
                         <video key={roomId} autoPlay loop muted playsInline className="w-12 h-12">
                             <source src={`/icon_room_${roomId}.webm`} type="video/webm" />
                         </video>
-                        <span>Prize Pool: <span className="font-mono">{parseFloat(lotteryStatus?.prizePool || '0').toFixed(4)}</span> USDT</span>
+                        {isAnimating && countdown !== null ? (
+                            <span>Drawing in... <span className="font-mono text-red-500">{countdown}</span> s</span>
+                        ) : (
+                            <span>Prize Pool: <span className="font-mono">{parseFloat(lotteryStatus?.prizePool || '0').toFixed(4)}</span> USDT</span>
+                        )}
                     </div>
                     
                     <div ref={logContainerRef} className="flex-grow rounded-lg p-4 bg-black/80 font-mono text-sm overflow-y-auto border border-gray-700 h-80 md:h-96">
