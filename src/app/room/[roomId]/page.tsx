@@ -369,9 +369,11 @@ export default function RoomPage() {
                 </div>
             </main>
 
-            <SideMenu onOpenMyPage={handleOpenMyPage} onOpenExplain={() => {
-                setIsExplainModalVisible(true)
-            }} />
+            <SideMenu 
+                onOpenMyPage={handleOpenMyPage} 
+                onOpenExplain={() => setIsExplainModalVisible(true)}
+                deadline={lotteryStatus?.deadline || null}
+            />
 
             {isMyPageVisible && user && (
                 <MyPageModal

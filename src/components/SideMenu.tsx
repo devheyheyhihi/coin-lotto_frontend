@@ -10,7 +10,7 @@ interface SideMenuProps {
   deadline: string | null;
 }
 
-const SideMenu = ({ onOpenMyPage, onOpenExplain, deadline }: SideMenuProps) => {
+const SideMenu: React.FC<SideMenuProps> = ({ onOpenMyPage, onOpenExplain, deadline }) => {
     const { isLoggedIn } = useAuth();
 
     return (
