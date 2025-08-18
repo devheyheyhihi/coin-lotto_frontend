@@ -88,26 +88,28 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
   };
 
   return (
-    <div
-      ref={floatingBarRef}
-      className="fixed z-[60] bg-black px-2 rounded-lg cursor-move select-none overflow-hidden"
-      style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        width: '151px',
-        height: isExpanded ? '150px' : '21px',
-        transition: isDragging ? 'none' : 'height 0.3s ease'
-      }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+          <div
+        ref={floatingBarRef}
+        className="fixed z-[60] bg-black px-2 rounded-lg select-none overflow-hidden"
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: '151px',
+          height: isExpanded ? '150px' : '21px',
+          transition: isDragging ? 'none' : 'height 0.3s ease'
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
       {/* Header bar */}
-      <div className="flex items-center justify-between h-[21px]">
+      <div 
+        className="flex items-center justify-between h-[21px] cursor-move"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
         {/* Close/Plus button */}
         <button 
           className="text-white text-sm font-bold hover:text-blue-400"
@@ -119,7 +121,7 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
         {/* Timer display */}
         <div>
           <Timer 
-            deadline={deadline}
+            deadline={deadline || null}
             digitClassName="font-['LABDigital'] text-cyan-400 text-xs"
             colonClassName="font-['LABDigital'] text-cyan-400 text-xs"
             containerClassName="flex items-center gap-1"
@@ -130,7 +132,12 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="px-1/2 pb-3 overflow-y-auto" style={{ height: '129px' }}>
+        <div 
+          className="px-1/2 pb-3 overflow-y-auto cursor-default" 
+          style={{ height: '129px' }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
           <div className="space-y-2">
             {mockData.map((item, index) => (
               <div 

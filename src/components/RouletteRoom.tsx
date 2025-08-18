@@ -72,7 +72,7 @@ const RouletteRoom: React.FC<RouletteRoomProps> = ({ onEnterRouletteRoom, deadli
           >
             <p className="pt-[1vw] text-white [text-shadow:0_5px_4.8px_rgba(0,0,0,0.25)] font-['Freesentation'] text-[3.89vw] font-bold leading-normal">참여하기</p>
             <Timer 
-              deadline={deadline}
+              deadline={deadline || null}
               digitClassName="font-['LABDigital'] text-cyan-400 text-[5.56vw] font-normal leading-normal"
               colonClassName="font-['LABDigital'] text-cyan-400 text-[5.56vw] font-normal leading-normal"
               containerClassName="flex items-center justify-center gap-1"

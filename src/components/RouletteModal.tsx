@@ -111,22 +111,22 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
       className="fixed inset-0 bg-[#00000080] flex items-center justify-center z-50"
       onClick={handleBackdropClick}
     >
-      <div className="relative bg-[#1a1a2e] w-full mx-4 max-h-[90vh] overflow-y-auto rounded-2xl bg-[url('/bg_page_roullette.png')] bg-[length:100%_100%]">
-        {/* Header with Close Button - Fixed */}
-        <div className="fixed top-7 right-4 z-10 flex justify-end items-center pr-[3vw] py-2">
+      <div className="bg-[#1a1a2e] w-full mx-4 max-h-[90vh] overflow-y-auto rounded-2xl bg-[url('/bg_page_roullette.png')] bg-[length:100%_100%]">
+        
+
+        <div className="relative text-white font-sans py-[8vw]">
+          {/* Header with Close Button - Fixed */}
           <button 
             onClick={onClose}
-            className="text-white hover:text-gray-300 text-[6vw] font-bold"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 text-[6vw] font-bold"
           >
             ×
           </button>
-        </div>
-
-        <div className="text-white font-sans py-[8vw]">
+          
           {/* Top Timer Bar */}
           <div className="mx-auto w-[70vw] bg-black py-[1.5vw] border-1 border-yellow-400 text-center rounded-xl">
             <Timer 
-              deadline={deadline}
+              deadline={deadline || null}
               digitClassName="font-['LABDigital'] text-[#2BF7FF] text-[10vw]"
               colonClassName="font-['LABDigital'] text-[#2BF7FF] text-[10vw]"
               containerClassName="flex items-center justify-center gap-1"
