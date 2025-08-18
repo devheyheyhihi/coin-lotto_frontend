@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '@/config';
 import WinnersModal from './WinnersModal';
 
@@ -81,6 +81,41 @@ const WinnerInfoBar = () => {
 
     const currentWinnerInfo = currentRound && currentRoom ? winnerData[currentRound]?.[currentRoom.id] : null;
 
+    // 모바일 모달용 데이터 변환
+    const winnerList = useMemo(() => {
+        if (!rounds.length || !rooms.length || !Object.keys(winnerData).length) return [];
+        
+        const list: Array<{
+            round: number;
+            roomId: string;
+            roomName: string;
+            ticketPrice: string;
+            winner: string;
+            nickname?: string;
+            prizePool: string;
+            timestamp?: string;
+        }> = [];
+        
+        rounds.forEach(round => {
+            rooms.forEach(room => {
+                const winner = winnerData[round]?.[room.id];
+                if (winner) {
+                    list.push({
+                        round,
+                        roomId: room.id,
+                        roomName: room.name,
+                        ticketPrice: room.ticketPrice,
+                        winner: winner.winner,
+                        nickname: winner.nickname,
+                        prizePool: winner.prizePool,
+                        timestamp: winner.timestamp
+                    });
+                }
+            });
+        });
+        return list;
+    }, [rounds, rooms, winnerData]);
+
     // --- Render ---
     if (isLoading) {
         return (
@@ -98,7 +133,13 @@ const WinnerInfoBar = () => {
         <>
         {/* Mobile: button */}
         <div className="md:hidden px-[8.33vw] py-[4.16vw]">
-            <button onClick={() => setIsModalOpen(true)} className="w-full rounded-2xl bg-white border-2 border-[#938C8C] py-[1.2vw]">
+            <button 
+                onClick={() => {
+                    console.log('Opening modal with data:', { rounds, rooms, winnerList });
+                    setIsModalOpen(true);
+                }} 
+                className="w-full rounded-2xl bg-white border-2 border-[#938C8C] py-[1.2vw]"
+            >
                 <span className="text-[#2D3131] font-['Pretendard'] text-[3.89vw] font-bold leading-normal">당첨자 정보</span>
             </button>
         </div>
@@ -118,13 +159,15 @@ const WinnerInfoBar = () => {
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:justify-end md:gap-x-6 lg:gap-x-10">
                 <div className="flex items-center space-x-4">
                     <button onClick={() => handleRoomChange('prev')} className="text-xl text-[#8CFBFF]">◀</button>
-                    <span className="text-base">{currentRoom.name}</span>
+                    <span className="text-base">{currentRoom?.name || 'No Room'}</span>
                     <button onClick={() => handleRoomChange('next')} className="text-xl text-[#8CFBFF]">▶</button>
                 </div>
                 {currentWinnerInfo ? (
                     <>
                         <span className="text-xl text-yellow-400">🏆 Winner</span>
-                        <span className="text-base">{`${currentWinnerInfo.winner.substring(0, 6)}...${currentWinnerInfo.winner.slice(-4)}`}</span>
+                        <span className="text-base">
+                            {currentWinnerInfo.nickname || `${currentWinnerInfo.winner.substring(0, 6)}...${currentWinnerInfo.winner.slice(-4)}`}
+                        </span>
                         <span className="text-base">{parseFloat(currentWinnerInfo.prizePool).toFixed(2)} USDT</span>
                     </>
                 ) : (
@@ -134,7 +177,12 @@ const WinnerInfoBar = () => {
         </div>
 
         {isModalOpen && (
-            <WinnersModal onClose={() => setIsModalOpen(false)} />
+            <WinnersModal 
+                onClose={() => setIsModalOpen(false)}
+                winnerList={winnerList}
+                rounds={rounds}
+                rooms={rooms}
+            />
         )}
         </>
     );
