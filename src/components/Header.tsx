@@ -7,13 +7,15 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
+import MobileBanner from './MobileBanner';
 
 interface HeaderProps {
   balance: number; // 잔액 표시는 유지될 수 있으므로 일단 남겨둡니다.
   onOpenMyPage: () => void;
+  showMobileBanner?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ balance, onOpenMyPage }) => {
+const Header: React.FC<HeaderProps> = ({ balance, onOpenMyPage, showMobileBanner = false }) => {
   const { isLoggedIn, user, logout } = useAuth();
   const pathname = usePathname();
 
@@ -41,7 +43,8 @@ const Header: React.FC<HeaderProps> = ({ balance, onOpenMyPage }) => {
 
   return (
     <>
-    <header className="flex items-center justify-between px-4 py-6 md:px-[8.33vw] md:py-[5.5vh]">
+    {/* Desktop header */}
+    <header className="hidden md:flex items-center justify-between px-4 py-6 md:px-[8.33vw] md:py-[5.5vh]">
       <Link href="/" className="cursor-pointer">
         <Image
           src="/header_logo.svg"
@@ -71,6 +74,13 @@ const Header: React.FC<HeaderProps> = ({ balance, onOpenMyPage }) => {
         )}
       </nav>
     </header>
+
+    {/* Mobile banner (optional) */}
+    {showMobileBanner && (
+      <div className="md:hidden">
+        <MobileBanner />
+      </div>
+    )}
 
       {isLoginModalOpen && <LoginModal onClose={closeModals} onSwitchToSignup={openSignupModal} />}
       {isSignupModalOpen && <SignupModal onClose={closeModals} onSwitchToLogin={openLoginModal} />}

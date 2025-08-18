@@ -1,10 +1,10 @@
 'use client';
 
 import { forwardRef } from 'react';
-import Image from 'next/image'; // Image 컴포넌트 임포트
 import Timer from './Timer';
 import SpinningNumbers from './SpinningNumbers'; // 새로 만든 컴포넌트 임포트
 import RouletteSection from './RouletteSection';
+import GlobalRoundBar from './GlobalRoundBar';
 
 interface EntrySectionProps {
   participationOptions: { id: string; amount: number; participants: string }[];
@@ -18,30 +18,28 @@ const EntrySection = forwardRef<HTMLDivElement, EntrySectionProps>(
     return (
       <div ref={ref} className="relative text-center">
         <div>
-          <div className="mx-auto flex h-14 w-full items-center justify-center bg-gradient-to-r from-[#3869A9] to-[#035ED5] shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25),0_1px_8.5px_0_rgba(0,0,0,0.73)]">
-            <h2 className="text-2xl font-bold">{globalRoundId ? `${globalRoundId}회` : '...'}</h2>
+          <div className="hidden md:block">
+            <GlobalRoundBar globalRoundId={globalRoundId} />
           </div>
-          <div className="bg-[linear-gradient(#42529E,#3C509E,#3C509E80,#08369A00)] py-10">
-            <div className="hidden md:block">
+          <div className="bg-gradient-to-b from-white to-[#F1F0F0] shadow-[inset_0_2px_7.7px_0_rgba(0,0,0,0.25)] md:bg-[linear-gradient(#42529E,#3C509E,#3C509E80,#08369A00)] md:py-10 md:shadow-none">
               <Timer 
                 deadline={deadline}
                 showDate={true}
                 dateClassName="font-['Pretendard'] text-xl font-semibold leading-normal text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                containerClassName="flex justify-center items-center font-['LABDigital'] text-[64px] font-normal leading-normal text-[#2BF7FF]"
-                digitClassName="w-20"
+                containerClassName="flex justify-center items-center font-['LABDigital'] text-[9vw] md:text-[64px] font-normal leading-normal text-black md:text-[#2BF7FF] mb-[12vw] md:mb-0"
+                digitClassName="w-[12vw] md:w-20 py-[2.16vw] md:py-0"
               />
-            </div>
           </div>
           
           <div className="px-6 pb-8 md:px-12 lg:px-24">
             {/* Participation Options */}
-            <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-4">
               {participationOptions.map((option, index) => {
                 const fromColors = [
-                  "from-[#25228A]",     // Blue
-                  "from-[#554671]",     // Yellow
-                  "from-[#26475F]",     // Green
-                  "from-[#491C51]",     // Red
+                  "md:from-[#25228A]",     // Blue (md+)
+                  "md:from-[#554671]",     // Yellow (md+)
+                  "md:from-[#26475F]",     // Green (md+)
+                  "md:from-[#491C51]",     // Red (md+)
                 ];
 
                 const videos = [
@@ -54,12 +52,28 @@ const EntrySection = forwardRef<HTMLDivElement, EntrySectionProps>(
                 return (
                   <div
                     key={option.id}
-                    className={`rounded-[25px] bg-gradient-to-b from-white to-[#724444] p-[2px] shadow-[0_4px_6.7px_3px_rgba(0,0,0,0.25)]`}
+                    className={`md:rounded-[25px] md:bg-gradient-to-b md:from-white md:to-[#724444] md:p-[2px] md:shadow-[0_4px_6.7px_3px_rgba(0,0,0,0.25)]`}
                   >
                     <div
-                      className={`h-full w-full rounded-[23px] bg-gradient-to-b to-[#1E164F] p-6 shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25)] ${fromColors[index]}`}
+                      className={`h-full w-full rounded-[8px] md:rounded-[23px] bg-gradient-to-t from-[#EFEFEF] to-[#F0E9E9] md:bg-gradient-to-b md:to-[#1E164F] p-4 md:p-6 shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25)] ${fromColors[index]}`}
                     >
-                      <div className="text-left">
+                      {/* Mobile layout (image-like): left label, right button */}
+                      <div className="flex items-center justify-between md:hidden">
+                        <div className="text-left">
+                          <p className="font-['Pretendard'] text-[3.89vw] font-bold leading-normal text-[#2D3131] md:text-white md:text-2xl md:[text-shadow:0_4px_4px_rgba(0,0,0,0.25)]">
+                            USDT {option.amount}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleEnterRoom(option.id)}
+                          className="rounded-xl bg-[#F5F5F5] px-6 py-3 text-[#333] font-['Pretendard'] text-base font-semibold shadow-[inset_0_4px_4px_rgba(0,0,0,0.1),0_4px_4px_rgba(0,0,0,0.25)] active:translate-y-[1px]"
+                        >
+                          참여하기
+                        </button>
+                      </div>
+
+                      {/* Desktop/Tablet layout (kept as-is) */}
+                      <div className="hidden md:block text-left">
                         <p className="font-['Pretendard'] text-2xl font-bold leading-normal text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.25)]">USDT</p>
                         <p className="mb-4 font-['Pretendard'] text-2xl font-bold leading-normal text-white [text-shadow:0_4px_4px_rgba(0,0,0,0.25)]">{option.amount}</p>
                         <div className="mx-auto mb-4 flex h-full w-full items-center justify-center rounded-full">
@@ -87,7 +101,7 @@ const EntrySection = forwardRef<HTMLDivElement, EntrySectionProps>(
             </div>
           </div>
 
-          <RouletteSection />
+          {/* <RouletteSection /> */}
         </div>
       </div>
     );

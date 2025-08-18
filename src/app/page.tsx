@@ -9,8 +9,13 @@ import MyPageModal from "@/components/MyPageModal";
 import GameExplainModal from "@/components/GameExplainModal";
 import SideMenu from "@/components/SideMenu";
 import LoginModal from "@/components/LoginModal"; // LoginModal 임포트
+import SignupModal from "@/components/SignupModal"; // SignupModal 임포트
+import RouletteModal from '@/components/RouletteModal';
 import { API_BASE_URL } from "@/config";
 import { useRouter } from 'next/navigation';
+import GlobalRoundBar from '@/components/GlobalRoundBar';
+import RouletteRoom from '@/components/RouletteRoom';
+// Mobile banner is now handled inside Header via showMobileBanner prop
 
 interface RoomStatus {
   id: string;
@@ -22,6 +27,8 @@ export default function Home() {
   const [isMyPageModalVisible, setIsMyPageModalVisible] = useState(false);
   const [isExplainModalVisible, setIsExplainModalVisible] = useState(false);
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false); // 로그인 모달 상태 추가
+  const [isSignupModalVisible, setIsSignupModalVisible] = useState(false); // 회원가입 모달 상태 추가
+  const [isRouletteModalVisible, setIsRouletteModalVisible] = useState(false); // 룰렛 모달 상태 추가
   const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
   const [mainDeadline, setMainDeadline] = useState<string | null>(null);
   const [mainGlobalRoundId, setMainGlobalRoundId] = useState<number | null>(null);
@@ -114,6 +121,20 @@ export default function Home() {
     }
   };
 
+  const handleOpenRouletteRoom = () => {
+    setIsRouletteModalVisible(true);
+  };
+
+  const handleSwitchToSignup = () => {
+    setIsLoginModalVisible(false);
+    setIsSignupModalVisible(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsSignupModalVisible(false);
+    setIsLoginModalVisible(true);
+  };
+
   const handleEnterGame = () => {
     entrySectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -132,23 +153,29 @@ export default function Home() {
 
 
   return (
-    <div className="bg-[#1a1a2e] min-h-screen pb-20 text-white font-sans bg-[url('/bg.png')] bg-[length:100%_100%] bg-fixed">
+    <div className=" bg-white min-h-screen text-white font-sans md:bg-[url('/bg.png')] bg-[length:100%_100%] bg-fixed">
       {/* Header는 이제 AuthContext를 통해 자체적으로 상태를 관리하므로 props가 필요 없습니다. */}
       <Header
         balance={balance} // balance는 MyPageModal 등 다른 곳에서도 쓰일 수 있어 일단 유지
         onOpenMyPage={handleOpenMyPage}
+        showMobileBanner
       />
       <main>
-        <WinnerInfoBar />
-        <div>
-          <EntrySection 
-            ref={entrySectionRef} 
-            participationOptions={participationOptions} 
-            handleEnterRoom={handleEnterRoom}
-            deadline={mainDeadline} 
-            globalRoundId={mainGlobalRoundId}
-          />
+        <div className="md:hidden">
+          <GlobalRoundBar globalRoundId={mainGlobalRoundId} />
         </div>
+        <WinnerInfoBar />
+        <EntrySection 
+          ref={entrySectionRef} 
+          participationOptions={participationOptions} 
+          handleEnterRoom={handleEnterRoom}
+          deadline={mainDeadline} 
+          globalRoundId={mainGlobalRoundId}
+        />
+        <RouletteRoom 
+          onEnterRouletteRoom={handleOpenRouletteRoom}
+          deadline={mainDeadline}
+        />
       </main>
 
       <SideMenu 
@@ -174,7 +201,22 @@ export default function Home() {
       {isLoginModalVisible && (
         <LoginModal 
           onClose={() => setIsLoginModalVisible(false)}
-          // Header가 회원가입 모달 전환을 처리하므로 onSwitchToSignup은 전달하지 않습니다.
+          onSwitchToSignup={handleSwitchToSignup}
+        />
+      )}
+
+      {isSignupModalVisible && (
+        <SignupModal 
+          onClose={() => setIsSignupModalVisible(false)}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      )}
+
+      {isRouletteModalVisible && (
+        <RouletteModal 
+          isOpen={isRouletteModalVisible}
+          onClose={() => setIsRouletteModalVisible(false)}
+          deadline={mainDeadline} // 현재는 로또와 같은 deadline 사용
         />
       )}
     </div>

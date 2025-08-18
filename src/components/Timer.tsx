@@ -9,9 +9,10 @@ interface TimerProps {
   colonClassName?: string;
   showDate?: boolean;
   dateClassName?: string;
+  enableMobileWarning?: boolean; // 모바일에서 경고 색상 활성화 여부
 }
 
-const Timer = ({ deadline, containerClassName, digitClassName, colonClassName, showDate, dateClassName }: TimerProps) => {
+const Timer = ({ deadline, containerClassName, digitClassName, colonClassName, showDate = true, dateClassName, enableMobileWarning = false }: TimerProps) => {
   const [timeLeft, setTimeLeft] = useState({
     hours: '--',
     minutes: '--',
@@ -60,15 +61,21 @@ const Timer = ({ deadline, containerClassName, digitClassName, colonClassName, s
 
   const totalSecondsLeft = deadline ? (new Date(deadline).getTime() - new Date().getTime()) / 1000 : 0;
 
+    // 경고 색상 적용 로직
+  const getWarningClass = (condition: boolean) => {
+    if (!enableMobileWarning) return '';
+    return condition ? 'text-gray-100 md:text-gray-100' : '';
+  };
+
   return (
     <div>
-      {showDate && <p className={dateClassName}>{currentDate}</p>}
+      {showDate && <p className={`${dateClassName || ''} hidden md:block`}>{currentDate}</p>}
       <div className={containerClassName}>
-        <p className={`${digitClassName} ${totalSecondsLeft < 3600 ? 'text-gray-100' : ''}`}>{timeLeft.hours}</p>
-        <span className={colonClassName}>:</span>
-        <p className={`${digitClassName} ${totalSecondsLeft < 60 ? 'text-gray-100' : ''}`}>{timeLeft.minutes}</p>
-        <span className={colonClassName}>:</span>
-        <p className={`${digitClassName} ${totalSecondsLeft <= 0 ? 'text-gray-100' : ''}`}>{timeLeft.seconds}</p>
+          <p className={`${digitClassName} ${totalSecondsLeft < 3600 ? 'md:text-gray-100' : ''} ${getWarningClass(totalSecondsLeft < 3600)}`}>{timeLeft.hours}</p>
+          <span className={colonClassName}>:</span>
+          <p className={`${digitClassName} ${totalSecondsLeft < 60 ? 'md:text-gray-100' : ''} ${getWarningClass(totalSecondsLeft < 60)}`}>{timeLeft.minutes}</p>
+          <span className={colonClassName}>:</span>
+        <p className={`${digitClassName} ${totalSecondsLeft <= 0 ? 'md:text-gray-100' : ''} ${getWarningClass(totalSecondsLeft <= 0)}`}>{timeLeft.seconds}</p>
       </div>
     </div>
   );

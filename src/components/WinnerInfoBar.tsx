@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '@/config';
+import WinnersModal from './WinnersModal';
 
 interface Room {
     id: string;
@@ -23,6 +24,7 @@ const WinnerInfoBar = () => {
     const [rooms, setRooms] = useState<Room[]>([]);
     const [winnerData, setWinnerData] = useState<WinnerData>({});
     const [isLoading, setIsLoading] = useState(true); // 로딩 상태 추가
+    const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
     const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
@@ -50,6 +52,11 @@ const WinnerInfoBar = () => {
         fetchData();
     }, []);
 
+    // --- Mobile button ---
+    if (!isLoading) {
+        // Render a button on mobile to open modal
+    }
+
     const handleRoundChange = (direction: 'prev' | 'next') => {
         if (direction === 'prev') {
             setCurrentRoundIndex(prev => Math.min(prev + 1, rounds.length - 1));
@@ -74,16 +81,30 @@ const WinnerInfoBar = () => {
 
     const currentWinnerInfo = currentRound && currentRoom ? winnerData[currentRound]?.[currentRoom.id] : null;
 
+    // --- Render ---
     if (isLoading) {
-        return <div className="mx-auto flex w-full h-14 items-center justify-center bg-gray-800 text-gray-500">Loading Winner Data...</div>;
+        return (
+            <>
+                <div className="mx-auto flex w-full h-14 items-center justify-center bg-gray-800 text-gray-500">Loading Winner Data...</div>
+            </>
+        );
     }
 
     // if (rounds.length === 0) {
     //     return <div className="mx-auto flex w-full h-14 items-center justify-center bg-gray-800 text-gray-500">이전 우승자 기록이 없습니다.</div>;
     // }
-
+    
     return (
-        <div className="mx-auto flex w-full flex-col items-center gap-2 border-t-2 border-[#33B8D7] bg-gradient-to-t from-black/[.72] to-[#1830C9] px-4 py-2 font-['Pretendard'] font-extrabold leading-normal shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25),0_-5px_4px_0_rgba(0,0,0,0.25)] md:h-14 md:flex-row md:justify-between md:px-[5vw] md:py-0">
+        <>
+        {/* Mobile: button */}
+        <div className="md:hidden px-[8.33vw] py-[4.16vw]">
+            <button onClick={() => setIsModalOpen(true)} className="w-full rounded-2xl bg-white border-2 border-[#938C8C] py-[1.2vw]">
+                <span className="text-[#2D3131] font-['Pretendard'] text-[3.89vw] font-bold leading-normal">당첨자 정보</span>
+            </button>
+        </div>
+
+        {/* Desktop: existing bar */}
+        <div className="hidden md:flex mx-auto w-full flex-col items-center gap-2 border-t-2 border-[#33B8D7] bg-gradient-to-t from-black/[.72] to-[#1830C9] px-4 py-2 font-['Pretendard'] font-extrabold leading-normal shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25),0_-5px_4px_0_rgba(0,0,0,0.25)] md:h-14 md:flex-row md:justify-between md:px-[5vw] md:py-0">
             {/* 회차 선택 */}
             <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
                 <button onClick={() => handleRoundChange('next')} className="text-xl text-[#8CFBFF]">◀</button>
@@ -111,6 +132,11 @@ const WinnerInfoBar = () => {
                 )}
             </div>
         </div>
+
+        {isModalOpen && (
+            <WinnersModal onClose={() => setIsModalOpen(false)} />
+        )}
+        </>
     );
 }
 

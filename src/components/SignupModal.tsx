@@ -51,10 +51,10 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-      <div className="bg-gray-800 border border-yellow-400 rounded-lg p-8 w-full max-w-md m-4 text-white">
+    <div className="fixed inset-0 bg-[#00000080] flex justify-center items-center z-50">
+      <div className="bg-gradient-to-b from-[#08369A] to-[#000000] rounded-lg p-8 w-full max-w-md m-4 text-white">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-yellow-400">회원가입</h2>
+          <h2 className="text-2xl font-bold text-white">회원가입</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-3xl" disabled={isLoading}>&times;</button>
         </div>
         <form onSubmit={handleSignup}>
@@ -109,7 +109,7 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
           </div>
           <button
             type="submit"
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-md transition duration-300 disabled:bg-gray-500"
+            className="w-full bg-[#005CD4] hover:bg-[#2F89FF] text-white font-bold py-3 rounded-md transition duration-300 disabled:bg-gray-500"
             disabled={isLoading}
           >
             {isLoading ? '가입 처리 중...' : '가입하기'}

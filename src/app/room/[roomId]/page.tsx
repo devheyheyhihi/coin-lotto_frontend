@@ -96,7 +96,7 @@ export default function RoomPage() {
             setError((err as Error).message);
         }
     }, [roomId, roomConfig]);
-    
+
     // --- New, Robust Animation Logic ---
     useEffect(() => {
         if (!lotteryStatus || isAnimating) return; // 서버 데이터 없거나 애니메이션 중이면 종료
@@ -164,7 +164,7 @@ export default function RoomPage() {
         prevStatusRef.current = lotteryStatus;
         
     }, [lotteryStatus, isAnimating, displayedLogs.length]); // 의존성 배열에 isAnimating 추가
-
+    
     useEffect(() => {
         if (!lotteryStatus?.deadline || lotteryStatus.status !== 'OPEN') {
             return;
@@ -314,7 +314,7 @@ export default function RoomPage() {
                         {isAnimating && countdown !== null ? (
                             <span>Drawing in... <span className="font-mono text-red-500">{countdown}</span> s</span>
                         ) : (
-                            <span>Prize Pool: <span className="font-mono">{parseFloat(lotteryStatus?.prizePool || '0').toFixed(4)}</span> USDT</span>
+                        <span>Prize Pool: <span className="font-mono">{parseFloat(lotteryStatus?.prizePool || '0').toFixed(4)}</span> USDT</span>
                         )}
                     </div>
                     
@@ -340,7 +340,8 @@ export default function RoomPage() {
                     
                     <Timer 
                         deadline={lotteryStatus?.status === 'OPEN' ? lotteryStatus.deadline : null}
-                        containerClassName="text-4xl md:text-5xl text-center font-['LABDigital'] py-2 text-cyan-400 flex justify-center"
+                        containerClassName="text-4xl md:text-5xl text-center font-['LABDigital'] py-2 text-black md:text-cyan-400 flex justify-center"
+                        enableMobileWarning={true}
                     />
 
                     {error && <p className="text-red-500 text-xs my-1 text-center">{error}</p>}

@@ -5,7 +5,7 @@ import SpinningNumbers from './SpinningNumbers';
 
 const RouletteSection = () => {
   return (
-    <div className="relative mt-8 md:mt-16 mx-auto w-[340px] h-[340px] animate-spin-slow">
+    <div className="relative mx-auto w-[80vw] h-[80vw] animate-spin-slow">
       <Image
         src="/roulette.svg"
         alt="roulette"
@@ -14,7 +14,7 @@ const RouletteSection = () => {
         className="absolute inset-0 w-full h-full"
       />
       <div className="absolute inset-0 flex items-center justify-center">
-        <SpinningNumbers />
+        <SpinningNumbers width={80} height={80}/>
       </div>
     </div>
   );

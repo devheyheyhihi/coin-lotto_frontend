@@ -2,12 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 
-const SpinningNumbers = () => {
+const SpinningNumbers = ({ width, height }: { width: number; height: number }) => {
   const [isMounted, setIsMounted] = useState(false);
+  const [containerSize, setContainerSize] = useState(0);
   const numbers = Array.from({ length: 10 }, (_, i) => i + 1); // 1 to 10
-  const radius = 120; // 원의 반지름 (pixels)
-  const centerX = 150; // 원의 중심 X 좌표
-  const centerY = 150; // 원의 중심 Y 좌표
+  
+  useEffect(() => {
+    const calculateSize = () => {
+      // width가 90이면 90vw를 의미
+      const viewportWidth = window.innerWidth;
+      const calculatedSize = viewportWidth * (width / 100);
+      setContainerSize(calculatedSize);
+    };
+
+    calculateSize();
+    window.addEventListener('resize', calculateSize);
+    
+    return () => window.removeEventListener('resize', calculateSize);
+  }, [width]);
+  
+  const centerX = containerSize / 2; // 컨테이너 중심 X
+  const centerY = containerSize / 2; // 컨테이너 중심 Y  
+  const radius = (containerSize / 2) * 0.65; // 반지름의 70% (30% 줄임)
 
   useEffect(() => {
     setIsMounted(true);
@@ -18,7 +34,7 @@ const SpinningNumbers = () => {
   }
 
   return (
-    <div className="relative w-[300px] h-[300px] mx-auto">
+    <div className="relative mx-auto" style={{ width: containerSize, height: containerSize }}>
       <div className="relative w-full h-full">
         {numbers.map((num, i) => {
           const angle = (i / numbers.length) * 2 * Math.PI; // 360도를 라디안으로 계산
@@ -29,7 +45,7 @@ const SpinningNumbers = () => {
           return (
             <div
               key={num}
-              className="absolute text-white text-3xl font-bold"
+              className="absolute text-white text-[8vw] font-bold"
               style={{
                 left: `${x}px`,
                 top: `${y}px`,

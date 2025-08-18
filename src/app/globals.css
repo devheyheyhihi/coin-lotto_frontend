@@ -10,9 +10,9 @@
 }
 
 @layer utilities {
-  .animate-spin-slow {
-    animation: spin-kf 4s linear infinite;
-  }
+  /* .animate-spin-slow {
+    animation: spin-kf 0.001s linear infinite;
+  } */
 }
 
 :root {
