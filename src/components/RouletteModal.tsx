@@ -25,9 +25,19 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   const [showBettingComplete, setShowBettingComplete] = useState(false);
   
   // 룰렛 게임 상태
-  const [poolStatus, setPoolStatus] = useState({ low_pool: 0, high_pool: 0, total_pool: 0 });
+  const [poolStatus, setPoolStatus] = useState({ 
+    low_pool: 0, 
+    high_pool: 0, 
+    total_pool: 0, 
+    number_sequence: [1,2,3,4,5,6,7,8,9,10] 
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 추첨 애니메이션 상태
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [winningNumber, setWinningNumber] = useState<number | null>(null);
+  const [drawingResult, setDrawingResult] = useState<any>(null);
   
   // 로그인 모달 상태
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -50,12 +60,122 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   const fetchPoolStatus = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/roulette/pool-status`);
+      
       if (response.ok) {
         const data = await response.json();
         setPoolStatus(data);
+        setError(null);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Pool status error:', response.status, errorText);
+        setError(`Pool status error: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.error('Failed to fetch pool status:', error);
+      console.error('❌ Pool status fetch failed:', error);
+      setError(`Pool status fetch failed: ${error.message}`);
+    }
+  };
+  
+  // 룰렛 현재 상태 확인 (추첨 감지용)
+  const checkRouletteStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/roulette/current`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // 라운드가 없는 경우 처리
+        if (!data.round) {
+          return;
+        }
+        
+        // drawing 상태 감지 - 중복 처리 방지 (라운드 ID 기반)
+        if (data.round.status === 'drawing' && !isDrawing) {
+          console.log('🎰🎰🎰 서버 추첨 감지됨! 라운드:', data.round.id);
+          
+          // 즉시 isDrawing을 true로 설정해서 중복 실행 방지
+          setIsDrawing(true);
+          
+          // 현재 라운드 ID 저장
+          const currentRoundId = data.round.id;
+          
+          // 잠깐 기다린 후 결과 가져오기 (drawRouletteRound 완료 대기)
+          setTimeout(async () => {
+            // 현재 라운드의 추첨 결과 가져오기
+            const resultResponse = await fetch(`${API_BASE_URL}/api/roulette/result/${data.round.id}`);
+            
+            if (resultResponse.ok) {
+              const resultData = await resultResponse.json();
+              
+              // winning_number가 있는지 확인
+              if (resultData.winning_number) {
+                // 실제 추첨 결과 설정
+                const realDrawingResult = {
+                  winning_number: resultData.winning_number,
+                  winning_type: resultData.winning_type,
+                  number_sequence: resultData.number_sequence,
+                  is_test: false, // 실제 추첨임을 표시
+                  round_id: resultData.round_id,
+                  timestamp: new Date().toISOString()
+                };
+                
+                setWinningNumber(resultData.winning_number);
+                setDrawingResult(realDrawingResult);
+                setIsDrawing(true);
+                console.log('🎯 실제 추첨 애니메이션 시작! 당첨번호:', resultData.winning_number);
+                
+                // 5초 후 강제로 상태 리셋 (애니메이션 완료)
+                setTimeout(() => {
+                  console.log('🏁 강제로 애니메이션 상태 리셋');
+                  setIsDrawing(false);
+                  setWinningNumber(null);
+                  setDrawingResult(null);
+                }, 5000);
+              } else {
+                // 1초 후 다시 시도 (조용히)
+                setTimeout(() => {
+                  checkRouletteStatus();
+                }, 1000);
+              }
+            }
+          }, 1000); // 1초 대기
+        }
+        
+        // 라운드가 바뀌면 추첨 종료 (실제 추첨만)
+        if (data.round.status === 'betting' && isDrawing && !drawingResult?.is_test) {
+          // 라운드 번호가 바뀌었는지 확인
+          if (!drawingResult || data.round.round_number !== drawingResult.round_number) {
+            console.log('🔄 New round detected, resetting drawing state');
+            setIsDrawing(false);
+            setWinningNumber(null);
+            setDrawingResult(null);
+          }
+        }
+      }
+
+      // 2. 테스트 상태 체크 (관리자가 테스트 버튼을 눌렀는지 확인)
+      const testResponse = await fetch(`${API_BASE_URL}/api/roulette/test-status`);
+      if (testResponse.ok) {
+        const testData = await testResponse.json();
+        
+        if (testData.testResult && !isDrawing) {
+          console.log('🧪 테스트 애니메이션 감지:', testData.testResult.winning_number);
+          setWinningNumber(testData.testResult.winning_number);
+          setDrawingResult(testData.testResult);
+          setIsDrawing(true);
+        }
+        
+        // 테스트가 없어지면 애니메이션 종료
+        if (!testData.testResult && isDrawing && drawingResult?.is_test) {
+          setTimeout(() => {
+            setIsDrawing(false);
+            setWinningNumber(null);
+            setDrawingResult(null);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('❌ 룰렛 상태 확인 실패:', error);
     }
   };
   
@@ -105,11 +225,32 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   useEffect(() => {
     if (isOpen) {
       fetchPoolStatus();
-      // 5초마다 풀 상태 업데이트
-      const interval = setInterval(fetchPoolStatus, 5000);
-      return () => clearInterval(interval);
+      checkRouletteStatus();
+      
+      // 상태 업데이트 주기 조정 (테스트용으로 빠르게)
+      const statusInterval = setInterval(checkRouletteStatus, 1000); // 1초로 테스트
+      const poolInterval = setInterval(fetchPoolStatus, 10000);      // 10초 유지
+      
+      return () => {
+        clearInterval(statusInterval);
+        clearInterval(poolInterval);
+      };
     }
   }, [isOpen]);
+  
+  // 애니메이션 완료 콜백
+  const handleAnimationComplete = () => {
+    console.log('🎉 Roulette animation completed!');
+    
+    // 결과 표시
+    if (drawingResult) {
+      setError(null);
+      // 간단한 결과 표시 (나중에 더 예쁜 모달로 교체 가능)
+      setTimeout(() => {
+        alert(`🎉 당첨 번호: ${drawingResult.winning_number} (${drawingResult.winning_type})`);
+      }, 500);
+    }
+  };
   
   const handleNumberSelect = (num: number) => {
     setSelectedNumbers(prev => 
@@ -258,9 +399,44 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
             </div>
           )}
 
+          {/* Drawing State */}
+          {/* {isDrawing && (
+            <div className={`mx-4 mt-4 p-3 border rounded-lg ${
+              drawingResult?.is_test 
+                ? 'bg-purple-500/20 border-purple-500' 
+                : 'bg-yellow-500/20 border-yellow-500'
+            }`}>
+              <p className={`text-center text-[3.5vw] animate-pulse ${
+                drawingResult?.is_test ? 'text-purple-300' : 'text-yellow-300'
+              }`}>
+                {drawingResult?.is_test ? '🧪 테스트 애니메이션 진행 중...' : '🎰 공식 추첨이 진행 중입니다!'}
+              </p>
+              <p className={`text-center text-[3vw] mt-1 ${
+                drawingResult?.is_test ? 'text-purple-200' : 'text-yellow-200'
+              }`}>
+                {drawingResult?.is_test ? '관리자가 애니메이션을 테스트하고 있습니다' : '잠시만 기다려주세요... 결과가 곧 나옵니다!'}
+              </p>
+              <p className="text-green-300 text-center text-[2.5vw] mt-1">
+                {drawingResult?.is_test ? '테스트 번호' : '당첨 번호'}: {winningNumber}
+              </p>
+              {drawingResult?.round_id && (
+                <p className="text-green-200 text-center text-[2vw] mt-1">
+                  추첨 라운드: {drawingResult.round_id}
+                </p>
+              )}
+            </div>
+          )} */}
+
+
+
           {/* Roulette Wheel */}
           <div className="flex justify-center relative mt-[7vw] mb-[10vw]">
-            <RouletteSection />
+            <RouletteSection 
+              numbers={drawingResult?.number_sequence || poolStatus.number_sequence} 
+              isDrawing={isDrawing}
+              winningNumber={winningNumber}
+              onAnimationComplete={handleAnimationComplete}
+            />
             
             {/* Vector pointer */}
             <div className="absolute top-[1vw] left-1/2 transform -translate-x-1/2 z-10">
@@ -280,9 +456,9 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
               <button 
                 key={amount}
                 onClick={() => handleUsdtSelect(amount)}
-                disabled={isLoading}
+                disabled={isLoading || isDrawing}
                 className={`text-[3.89vw] font-bold rounded-xl w-[24.17vw] h-[9.72vw] transition-all duration-200 ${
-                  isLoading
+                  isLoading || isDrawing
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
                     : selectedUsdtAmount === amount
                       ? 'border border-[#EF0] bg-black text-[#EF0]'
@@ -298,9 +474,9 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
           <div className="flex flex-row gap-4 px-4 pb-4">
             {/* Low */}
             <div 
-              onClick={() => !isLoading && handleBetTypeSelect('low')}
+              onClick={() => !isLoading && !isDrawing && handleBetTypeSelect('low')}
               className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] transition-all duration-200 ${
-                isLoading
+                isLoading || isDrawing
                   ? 'cursor-not-allowed opacity-50'
                   : 'cursor-pointer'
               } ${
@@ -326,9 +502,9 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
 
             {/* High */}
             <div 
-              onClick={() => !isLoading && handleBetTypeSelect('high')}
+              onClick={() => !isLoading && !isDrawing && handleBetTypeSelect('high')}
               className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] transition-all duration-200 ${
-                isLoading
+                isLoading || isDrawing
                   ? 'cursor-not-allowed opacity-50'
                   : 'cursor-pointer'
               } ${

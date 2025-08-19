@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 
-const SpinningNumbers = ({ width, height }: { width: number; height: number }) => {
+interface SpinningNumbersProps {
+  width: number; 
+  height: number;
+  numbers?: number[]; // 서버에서 받은 숫자 배열
+}
+
+const SpinningNumbers = ({ width, height, numbers = [1,2,3,4,5,6,7,8,9,10] }: SpinningNumbersProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const [containerSize, setContainerSize] = useState(0);
-  const numbers = Array.from({ length: 10 }, (_, i) => i + 1); // 1 to 10
   
   useEffect(() => {
     const calculateSize = () => {
@@ -37,11 +42,16 @@ const SpinningNumbers = ({ width, height }: { width: number; height: number }) =
     <div className="relative mx-auto" style={{ width: containerSize, height: containerSize }}>
       <div className="relative w-full h-full">
         {numbers.map((num, i) => {
-          const angle = (i / numbers.length) * 2 * Math.PI; // 360도를 라디안으로 계산
+          // 12시 방향을 0도로 시작 (Math.cos/sin은 3시 방향이 0도이므로 -90도 조정)
+          const angle = (i / numbers.length) * 2 * Math.PI - Math.PI / 2; // -90도 조정
           const x = centerX + radius * Math.cos(angle);
           const y = centerY + radius * Math.sin(angle);
-          const rotation = (i / numbers.length) * 360; // 각 숫자의 기울기
+          
+          // 각 숫자가 원의 중심을 향하도록 회전 (라디안을 도로 변환)
+          const rotationDegrees = (angle * 180 / Math.PI) + 90; // +90도로 중심을 향하게
+          
 
+          
           return (
             <div
               key={num}
@@ -49,7 +59,7 @@ const SpinningNumbers = ({ width, height }: { width: number; height: number }) =
               style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                transform: `translate(-50%, -50%) rotate(${rotation + 90}deg)`, // 숫자가 원의 바깥쪽을 향하도록 조정
+                transform: `translate(-50%, -50%) rotate(${rotationDegrees}deg)`, // 원의 중심을 향하도록 회전
               }}
             >
               {num}

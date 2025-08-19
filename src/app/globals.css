@@ -13,6 +13,16 @@
   /* .animate-spin-slow {
     animation: spin-kf 0.001s linear infinite;
   } */
+  
+  /* 룰렛 추첨 애니메이션 */
+  .roulette-drawing {
+    animation-fill-mode: forwards;
+    animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  
+  .roulette-idle {
+    animation: spin-kf 3s linear infinite;
+  }
 }
 
 :root {

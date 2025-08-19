@@ -29,7 +29,7 @@ const RouletteRoom: React.FC<RouletteRoomProps> = ({ onEnterRouletteRoom, deadli
   };
 
   return (
-    <div className="relative bg-gradient-to-b from-[#820505] to-[#1C0101] px-[8.33vw] pt-[12vw] pb-[25vw]">
+    <div className="md:hidden relative bg-gradient-to-b from-[#820505] to-[#1C0101] px-[8.33vw] pt-[12vw] pb-[25vw]">
       {/* Roulette logo/title at top */}
       <div className="text-center mb-4 absolute top-[-5vw] left-[50%] translate-x-[-50%]">
         <Image 
