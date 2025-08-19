@@ -6,6 +6,9 @@ import RouletteSection from './RouletteSection';
 import Timer from './Timer';
 import BettingConfirmModal from './BettingConfirmModal';
 import BettingCompleteMessage from './BettingCompleteMessage';
+import LoginModal from './LoginModal';
+import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 interface RouletteModalProps {
   isOpen: boolean;
@@ -14,11 +17,99 @@ interface RouletteModalProps {
 }
 
 export default function RouletteModal({ isOpen, onClose, deadline }: RouletteModalProps) {
+  const { token, isLoggedIn } = useAuth();
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [selectedUsdtAmount, setSelectedUsdtAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'low' | 'high' | null>(null);
   const [showBettingConfirm, setShowBettingConfirm] = useState(false);
   const [showBettingComplete, setShowBettingComplete] = useState(false);
+  
+  // 룰렛 게임 상태
+  const [poolStatus, setPoolStatus] = useState({ low_pool: 0, high_pool: 0, total_pool: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 로그인 모달 상태
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // 로그인이 필요한 상황 처리
+  const handleLoginRequired = () => {
+    setError('로그인이 필요합니다.');
+    setShowLoginModal(true);
+  };
+  
+  // 로그인 성공 후 처리
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    setError(null);
+    // 로그인 후 풀 상태 새로고침
+    fetchPoolStatus();
+  };
+  
+  // 베팅 풀 상태 가져오기
+  const fetchPoolStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/roulette/pool-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setPoolStatus(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch pool status:', error);
+    }
+  };
+  
+  // 실제 베팅 API 호출
+  const placeBet = async (betType: 'LOW' | 'HIGH', amount: number) => {
+    if (!token || !isLoggedIn) {
+      setError('로그인이 필요합니다.');
+      return false;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/roulette/bet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bet_type: betType,
+          amount: amount
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Bet placed successfully:', data);
+        await fetchPoolStatus(); // 베팅 후 풀 상태 업데이트
+        return true;
+      } else {
+        setError(data.message || '베팅에 실패했습니다.');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Betting error:', error);
+      setError('네트워크 오류가 발생했습니다.');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 모달이 열릴 때마다 풀 상태 가져오기
+  useEffect(() => {
+    if (isOpen) {
+      fetchPoolStatus();
+      // 5초마다 풀 상태 업데이트
+      const interval = setInterval(fetchPoolStatus, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen]);
   
   const handleNumberSelect = (num: number) => {
     setSelectedNumbers(prev => 
@@ -27,41 +118,59 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   };
 
   const handleUsdtSelect = (amount: number) => {
+    if (!isLoggedIn) {
+      handleLoginRequired();
+      return;
+    }
     setSelectedUsdtAmount(prev => prev === amount ? null : amount);
     console.log('Selected USDT amount:', amount);
-    // TODO: 서버에 선택된 금액 전송
   };
 
   const handleBetTypeSelect = (type: 'low' | 'high') => {
+    if (!isLoggedIn) {
+      handleLoginRequired();
+      return;
+    }
     // 같은 타입 클릭 시 해제, 다른 타입 클릭 시 변경
     setSelectedBetType(prev => prev === type ? null : type);
     console.log('Selected bet type:', type);
   };
 
-  // USDT 금액과 베팅 타입이 모두 선택되면 확인 모달 표시
+  // USDT 금액과 베팅 타입이 모두 선택되면 확인 모달 표시 (로그인된 사용자만)
   useEffect(() => {
-    if (selectedUsdtAmount && selectedBetType) {
+    if (selectedUsdtAmount && selectedBetType && isLoggedIn) {
       setShowBettingConfirm(true);
     }
-  }, [selectedUsdtAmount, selectedBetType]);
+  }, [selectedUsdtAmount, selectedBetType, isLoggedIn]);
 
-  const handleBettingConfirm = () => {
-    console.log('Betting confirmed:', {
+  const handleBettingConfirm = async () => {
+    if (!selectedUsdtAmount || !selectedBetType) {
+      setError('베팅 정보가 완전하지 않습니다.');
+      return;
+    }
+    
+    console.log('🎰 Betting confirmed:', {
       amount: selectedUsdtAmount,
       type: selectedBetType,
       selectedNumbers: selectedNumbers
     });
     
-    // TODO: 서버에 베팅 정보 전송
+    // 실제 베팅 API 호출
+    const success = await placeBet(selectedBetType.toUpperCase() as 'LOW' | 'HIGH', selectedUsdtAmount);
     
-    // 베팅 확인 모달 닫고 완료 메시지 표시
-    setShowBettingConfirm(false);
-    setShowBettingComplete(true);
-    
-    // 선택 상태 초기화
-    setSelectedUsdtAmount(null);
-    setSelectedBetType(null);
-    setSelectedNumbers([]);
+    if (success) {
+      // 베팅 성공 시
+      setShowBettingConfirm(false);
+      setShowBettingComplete(true);
+      
+      // 선택 상태 초기화
+      setSelectedUsdtAmount(null);
+      setSelectedBetType(null);
+      setSelectedNumbers([]);
+    } else {
+      // 베팅 실패 시 - 확인 모달은 닫지만 선택 상태는 유지
+      setShowBettingConfirm(false);
+    }
   };
 
   const handleBettingCancel = () => {
@@ -135,6 +244,20 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
             />
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mx-4 mt-4 p-3 bg-red-500/20 border border-red-500 rounded-lg">
+              <p className="text-red-300 text-center text-[3.5vw]">{error}</p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="mx-4 mt-4 p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+              <p className="text-blue-300 text-center text-[3.5vw]">베팅 처리 중...</p>
+            </div>
+          )}
+
           {/* Roulette Wheel */}
           <div className="flex justify-center relative mt-[7vw] mb-[10vw]">
             <RouletteSection />
@@ -157,10 +280,13 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
               <button 
                 key={amount}
                 onClick={() => handleUsdtSelect(amount)}
+                disabled={isLoading}
                 className={`text-[3.89vw] font-bold rounded-xl w-[24.17vw] h-[9.72vw] transition-all duration-200 ${
-                  selectedUsdtAmount === amount
-                    ? 'border border-[#EF0] bg-black text-[#EF0]'
-                    : 'bg-gradient-to-b from-[#FFFF1B] via-[#FFEB12] to-[#B78600] text-[#2D2929] border-2 border-white'
+                  isLoading
+                    ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                    : selectedUsdtAmount === amount
+                      ? 'border border-[#EF0] bg-black text-[#EF0]'
+                      : 'bg-gradient-to-b from-[#FFFF1B] via-[#FFEB12] to-[#B78600] text-[#2D2929] border-2 border-white'
                 }`}
               >
                 USDT {amount}
@@ -172,8 +298,12 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
           <div className="flex flex-row gap-4 px-4 pb-4">
             {/* Low */}
             <div 
-              onClick={() => handleBetTypeSelect('low')}
-              className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] cursor-pointer transition-all duration-200 ${
+              onClick={() => !isLoading && handleBetTypeSelect('low')}
+              className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] transition-all duration-200 ${
+                isLoading
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer'
+              } ${
                 selectedBetType === 'low' 
                   ? 'bg-[#8A0C0E]' 
                   : 'bg-gradient-to-b from-[#3B16BF] via-[#D01818] to-[#DA5B5B]'
@@ -191,13 +321,17 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
                   </button>
                 ))}
               </div>
-              <p className="text-[3.3vw] font-semibold">6,080,900</p>
+              <p className="text-[3.3vw] font-semibold">{poolStatus.low_pool.toLocaleString()}</p>
             </div>
 
             {/* High */}
             <div 
-              onClick={() => handleBetTypeSelect('high')}
-              className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] cursor-pointer transition-all duration-200 ${
+              onClick={() => !isLoading && handleBetTypeSelect('high')}
+              className={`w-1/2 rounded-xl border-2 border-white text-center py-[3vw] px-[3.98vw] transition-all duration-200 ${
+                isLoading
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer'
+              } ${
                 selectedBetType === 'high' 
                   ? 'bg-[#053065]' 
                   : 'bg-gradient-to-b from-[#38679D] via-63% via-[#3B16BF] to-[#1E1780]'
@@ -215,14 +349,14 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
                   </button>
                 ))}
               </div>
-              <p className="text-[3.3vw] font-semibold">16,080,900</p>
+              <p className="text-[3.3vw] font-semibold">{poolStatus.high_pool.toLocaleString()}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Betting Confirm Modal */}
-      {selectedUsdtAmount && selectedBetType && (
+      {/* Betting Confirm Modal - 로그인된 사용자만 */}
+      {selectedUsdtAmount && selectedBetType && isLoggedIn && (
         <BettingConfirmModal
           isOpen={showBettingConfirm}
           onClose={handleBettingCancel}
@@ -231,6 +365,13 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
           betType={selectedBetType}
         />
       )}
+
+      {/* Login Modal - 비로그인 사용자용 */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
       {/* Betting Complete Message */}
       <BettingCompleteMessage

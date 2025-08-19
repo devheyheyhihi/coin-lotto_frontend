@@ -5,12 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config';
 
 interface LoginModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   onSwitchToSignup?: () => void;
   onSignupClick?: () => void; // for room page
+  onLoginSuccess?: () => void; // for roulette modal
 }
 
-export default function LoginModal({ onClose, onSwitchToSignup, onSignupClick }: LoginModalProps) {
+export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, onSignupClick, onLoginSuccess }: LoginModalProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +39,11 @@ export default function LoginModal({ onClose, onSwitchToSignup, onSignupClick }:
         // AuthContext의 login 함수를 호출하여 상태를 업데이트하고 토큰을 저장
         login(data.token, data.user);
         onClose(); // 로그인 성공 시 모달 닫기
+        
+        // 룰렛 모달에서 호출된 경우 추가 콜백 실행
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
       } else {
         setError(data.message || '로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.');
       }
@@ -46,6 +53,8 @@ export default function LoginModal({ onClose, onSwitchToSignup, onSignupClick }:
       setIsLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-[#00000080] flex justify-center items-center z-50">
