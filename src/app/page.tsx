@@ -32,6 +32,8 @@ export default function Home() {
   const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
   const [mainDeadline, setMainDeadline] = useState<string | null>(null);
   const [mainGlobalRoundId, setMainGlobalRoundId] = useState<number | null>(null);
+  // 룰렛 전용 deadline 상태 추가
+  const [rouletteDeadline, setRouletteDeadline] = useState<string | null>(null);
   
   const { isLoggedIn, user } = useAuth(); // AuthContext에서 로그인 상태와 사용자 정보를 가져옵니다.
   const router = useRouter();
@@ -78,6 +80,24 @@ export default function Home() {
        } catch (error) { console.error("Failed to fetch main data:", error); }
   };
 
+    // 룰렛 deadline 가져오기 (독립적)
+    const fetchRouletteData = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/roulette/current`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.round && data.round.status === 'betting') {
+            setRouletteDeadline(data.deadline);
+          } else {
+            setRouletteDeadline(null);
+          }
+        }
+      } catch (error) { 
+        console.error("Failed to fetch roulette data:", error); 
+        setRouletteDeadline(null);
+      }
+    };
+
     const fetchRoomStatuses = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/rooms/status`);
@@ -89,11 +109,14 @@ export default function Home() {
     };
     
     fetchMainData();
+    fetchRouletteData();
     fetchRoomStatuses();
     const mainInterval = setInterval(fetchMainData, 10000);
+    const rouletteInterval = setInterval(fetchRouletteData, 5000); // 룰렛은 5초마다
     const interval = setInterval(fetchRoomStatuses, 5000);
       return () => {
         clearInterval(mainInterval);
+        clearInterval(rouletteInterval);
         clearInterval(interval);
     };
   }, []);
@@ -174,7 +197,7 @@ export default function Home() {
         />
         <RouletteRoom 
           onEnterRouletteRoom={handleOpenRouletteRoom}
-          deadline={mainDeadline}
+          deadline={rouletteDeadline}
         />
       </main>
 
@@ -216,7 +239,7 @@ export default function Home() {
         <RouletteModal 
           isOpen={isRouletteModalVisible}
           onClose={() => setIsRouletteModalVisible(false)}
-          deadline={mainDeadline} // 현재는 로또와 같은 deadline 사용
+          deadline={rouletteDeadline} // 룰렛 전용 deadline 사용
         />
       )}
     </div>
