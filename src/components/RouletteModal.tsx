@@ -37,7 +37,14 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   // 추첨 애니메이션 상태
   const [isDrawing, setIsDrawing] = useState(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
-  const [drawingResult, setDrawingResult] = useState<any>(null);
+  const [drawingResult, setDrawingResult] = useState<{
+    winning_number: number;
+    winning_type: string;
+    number_sequence: number[];
+    is_test: boolean;
+    timestamp: string;
+    round_number?: number;
+  } | null>(null);
   
   // 로그인 모달 상태
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -72,7 +79,7 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
       }
     } catch (error) {
       console.error('❌ Pool status fetch failed:', error);
-      setError(`Pool status fetch failed: ${error.message}`);
+      setError(`Pool status fetch failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
   
@@ -96,8 +103,7 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
           // 즉시 isDrawing을 true로 설정해서 중복 실행 방지
           setIsDrawing(true);
           
-          // 현재 라운드 ID 저장
-          const currentRoundId = data.round.id;
+
           
           // 잠깐 기다린 후 결과 가져오기 (drawRouletteRound 완료 대기)
           setTimeout(async () => {

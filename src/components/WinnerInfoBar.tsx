@@ -15,6 +15,8 @@ interface WinnerData {
         [roomId: string]: {
             winner: string;
             prizePool: string;
+            nickname?: string;
+            timestamp?: string;
         }
     }
 }

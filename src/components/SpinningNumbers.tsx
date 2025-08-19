@@ -8,7 +8,7 @@ interface SpinningNumbersProps {
   numbers?: number[]; // 서버에서 받은 숫자 배열
 }
 
-const SpinningNumbers = ({ width, height, numbers = [1,2,3,4,5,6,7,8,9,10] }: SpinningNumbersProps) => {
+const SpinningNumbers = ({ width, numbers = [1,2,3,4,5,6,7,8,9,10] }: SpinningNumbersProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const [containerSize, setContainerSize] = useState(0);
   

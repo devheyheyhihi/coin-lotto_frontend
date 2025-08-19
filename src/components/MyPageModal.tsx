@@ -43,6 +43,34 @@ const MyPageModal = ({ onClose }: MyPageModalProps) => {
 
     const { user, logout } = useAuth();
 
+    // 거래 타입에 따른 색상 결정
+    const getTransactionColor = (type: string) => {
+        const outgoingTypes = ['PLAY', 'WITHDRAWAL', 'ROULETTE_BET']; // 출금 타입들
+        const incomingTypes = ['DEPOSIT', 'WIN', 'ROULETTE_WIN']; // 입금 타입들
+        
+        if (outgoingTypes.includes(type)) {
+            return 'text-red-400'; // 빨간색 (출금)
+        } else if (incomingTypes.includes(type)) {
+            return 'text-green-400'; // 초록색 (입금)
+        } else {
+            return 'text-gray-400'; // 기본색
+        }
+    };
+
+    // 거래 타입에 따른 부호 결정
+    const getTransactionSign = (type: string, amount: number) => {
+        const outgoingTypes = ['PLAY', 'WITHDRAWAL', 'ROULETTE_BET']; // 출금 타입들
+        const incomingTypes = ['DEPOSIT', 'WIN', 'ROULETTE_WIN']; // 입금 타입들
+        
+        if (outgoingTypes.includes(type)) {
+            return '-'; // 마이너스 (출금)
+        } else if (incomingTypes.includes(type)) {
+            return '+'; // 플러스 (입금)
+        } else {
+            return amount > 0 ? '+' : ''; // 기본 로직
+        }
+    };
+
     // --- Data Fetching Logic ---
     const fetchBalance = useCallback(async () => {
         if (!user?.walletAddress) return;
@@ -244,8 +272,8 @@ const MyPageModal = ({ onClose }: MyPageModalProps) => {
                                                      <p className="text-xs text-gray-400">{new Date(tx.timestamp).toLocaleString()}</p>
                                                  </div>
                                                  <div className="text-right">
-                                                     <p className={`font-bold text-lg ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                         {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(4)}
+                                                     <p className={`font-bold text-lg ${getTransactionColor(tx.type)}`}>
+                                                         {getTransactionSign(tx.type, tx.amount)}{Math.abs(tx.amount).toFixed(4)}
                                                      </p>
                                                      {tx.tx_hash && (
                                                          <a 

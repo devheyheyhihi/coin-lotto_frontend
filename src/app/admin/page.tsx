@@ -33,8 +33,27 @@ const AdminPage = () => {
     const [rouletteDrawProcessing, setRouletteDrawProcessing] = useState(false);
     const [rouletteDrawError, setRouletteDrawError] = useState<string | null>(null);
     const [rouletteDrawSuccess, setRouletteDrawSuccess] = useState<string | null>(null);
-    const [rouletteCurrentStatus, setRouletteCurrentStatus] = useState<any>(null);
-    const [rouletteLatestResult, setRouletteLatestResult] = useState<any>(null);
+    const [rouletteCurrentStatus, setRouletteCurrentStatus] = useState<{
+        round: {
+            id: number;
+            round_number: number;
+            status: string;
+            end_time: string;
+            total_low_amount: string;
+            total_high_amount: string;
+            number_sequence?: string;
+        } | null;
+        timeRemaining?: number;
+    } | null>(null);
+    const [rouletteLatestResult, setRouletteLatestResult] = useState<{
+        winning_number: number;
+        winning_type: string;
+        round_id: number;
+        round_number?: number;
+        total_low_amount?: string;
+        total_high_amount?: string;
+        number_sequence?: number[];
+    } | null>(null);
 
     const fetchWithdrawals = useCallback(async () => {
         setIsLoading(true);
@@ -278,7 +297,7 @@ const AdminPage = () => {
                     <div className="grid md:grid-cols-2 gap-6 mb-6">
                         <div className="bg-gray-700/50 rounded-lg p-4">
                             <h3 className="text-lg font-semibold text-blue-300 mb-3">📊 Current Round Status</h3>
-                            {rouletteCurrentStatus ? (
+                            {rouletteCurrentStatus?.round ? (
                                 <div className="space-y-2 text-sm">
                                     <p><strong>Round #{rouletteCurrentStatus.round.round_number}</strong></p>
                                     <p>Status: <span className="text-green-400">{rouletteCurrentStatus.round.status}</span></p>
