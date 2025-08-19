@@ -304,7 +304,7 @@ export default function RoomPage() {
                 </div>
             </div>
 
-            <main className="flex flex-col md:flex-row w-full gap-4 md:gap-8 p-4 md:p-8">
+            <main className="flex flex-col md:flex-row w-full gap-4 md:gap-8 p-4 md:p-8 pb-20">
                 {/* Right Column */}
                 <div className="w-full md:w-2/3 flex flex-col gap-4 md:order-2">
                     <div className="text-xl md:text-2xl font-bold text-yellow-400 p-4 bg-black/30 rounded-lg border border-gray-700 flex items-center gap-2">
