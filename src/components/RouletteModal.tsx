@@ -212,6 +212,12 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
       
       if (response.ok) {
         console.log('✅ Bet placed successfully:', data);
+        // 베팅 성공 시, 서버가 반환한 newBalance로 즉시 전역 이벤트 발행
+        if (typeof window !== 'undefined' && typeof data?.newBalance === 'number') {
+          try {
+            window.dispatchEvent(new CustomEvent('balance:update', { detail: data.newBalance }));
+          } catch {}
+        }
         await fetchPoolStatus(); // 베팅 후 풀 상태 업데이트
         return true;
       } else {

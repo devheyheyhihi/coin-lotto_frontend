@@ -45,22 +45,25 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
   // 사용자 balance 데이터
   const { user } = useAuth();
   const [balance, setBalance] = useState<number>(0);
-  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // 사용자 balance 가져오기
   const fetchBalance = async () => {
     if (!user?.walletAddress) return;
-    setBalanceLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/balance/${user.walletAddress}`);
       if (response.ok) {
         const data = await response.json();
-        setBalance(data.balance);
+        // 값이 변경된 경우에만 상태 업데이트 (깜빡임 방지)
+        if (data.balance !== balance) {
+          setBalance(data.balance);
+        }
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
-    } finally {
-      setBalanceLoading(false);
     }
   };
 
@@ -84,12 +87,23 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
   useEffect(() => {
     if (user?.walletAddress) {
       fetchBalance();
-      // 10초마다 balance 업데이트
+      // 10초마다 balance 업데이트 (베팅 시 즉시 반영되므로 주기 연장)
       const interval = setInterval(fetchBalance, 10000);
+      // 실시간 즉시 반영: 전역 balance:update 이벤트 구독
+      const handleBalanceUpdate = (e: Event) => {
+        const custom = e as CustomEvent<number>;
+        if (typeof custom.detail === 'number') {
+          setBalance(custom.detail);
+        }
+      };
+      if (typeof window !== 'undefined') {
+        window.addEventListener('balance:update', handleBalanceUpdate as EventListener);
+      }
       return () => clearInterval(interval);
     } else {
       // 로그아웃 시 balance 초기화
       setBalance(0);
+      setIsInitialLoad(true);
     }
   }, [user?.walletAddress]);
 
@@ -201,7 +215,7 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
             <path d="M8.55271 5.10432C8.55271 4.55541 6.90655 4.34664 5.65347 4.29429V3.43637H7.67966V2.13525H2.32617V3.43637H4.35236V4.29429C3.09928 4.34664 1.45312 4.55541 1.45312 5.10432C1.45312 5.65324 3.09928 5.86201 4.35236 5.91435V8.69897H5.65347V5.91435C6.90655 5.86201 8.55271 5.65324 8.55271 5.10432ZM7.40446 5.48539C6.76421 5.61691 5.91147 5.68927 5.00299 5.68927C4.09451 5.68927 3.24177 5.61691 2.60152 5.48539C1.85569 5.33222 1.69244 5.15844 1.69244 5.10432C1.69244 5.0502 1.85584 4.87657 2.60152 4.72326C3.08608 4.62376 3.69238 4.55808 4.35236 4.53213V5.39746H5.65347V4.53213C6.31345 4.55822 6.9199 4.62376 7.40431 4.72326C8.15014 4.87642 8.31339 5.0502 8.31339 5.10432C8.31339 5.15844 8.14999 5.33222 7.40431 5.48539H7.40446Z" fill="white"/>
           </svg>
           <span className="text-[#EEFF00] text-xs">
-            {balanceLoading ? '...' : balance.toLocaleString()}
+            {isInitialLoad ? '...' : balance.toLocaleString()}
           </span>
         </div>
         

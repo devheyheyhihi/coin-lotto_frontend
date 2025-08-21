@@ -17,35 +17,55 @@ const SideMenu: React.FC<SideMenuProps> = ({ onOpenMyPage, onOpenExplain }) => {
     
     // Balance 상태 관리
     const [balance, setBalance] = useState<number>(0);
-    const [balanceLoading, setBalanceLoading] = useState(false);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // Balance 가져오기 함수
     const fetchBalance = async () => {
         if (!user?.walletAddress) return;
-        setBalanceLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/balance/${user.walletAddress}`);
             if (response.ok) {
                 const data = await response.json();
-                setBalance(data.balance);
+                // 값이 변경된 경우에만 상태 업데이트 (깜빡임 방지)
+                if (data.balance !== balance) {
+                    setBalance(data.balance);
+                }
+                if (isInitialLoad) {
+                    setIsInitialLoad(false);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch balance:', error);
-        } finally {
-            setBalanceLoading(false);
         }
     };
 
-    // 사용자 로그인 시 balance 가져오기
+    // 사용자 로그인 시 balance 가져오기 + 실시간 이벤트 구독
     useEffect(() => {
         if (user?.walletAddress) {
             fetchBalance();
-            // 10초마다 balance 업데이트
+            // 10초마다 balance 업데이트(보정) - 베팅 시 즉시 반영되므로 주기 연장
             const interval = setInterval(fetchBalance, 10000);
-            return () => clearInterval(interval);
+
+            const handleBalanceUpdate = (e: Event) => {
+                const custom = e as CustomEvent<number>;
+                if (typeof custom.detail === 'number') {
+                    setBalance(custom.detail);
+                }
+            };
+            if (typeof window !== 'undefined') {
+                window.addEventListener('balance:update', handleBalanceUpdate as EventListener);
+            }
+
+            return () => {
+                clearInterval(interval);
+                if (typeof window !== 'undefined') {
+                    window.removeEventListener('balance:update', handleBalanceUpdate as EventListener);
+                }
+            };
         } else {
             // 로그아웃 시 balance 초기화
             setBalance(0);
+            setIsInitialLoad(true);
         }
     }, [user?.walletAddress]);
 
@@ -64,9 +84,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ onOpenMyPage, onOpenExplain }) => {
                  <path d="M7 14C10.866 14 14 10.866 14 7C14 3.13401 10.866 0 7 0C3.13401 0 0 3.13401 0 7C0 10.866 3.13401 14 7 14Z" fill="white"/>
                  <path d="M11.9746 7.14596C11.9746 6.37747 9.66995 6.08519 7.91565 6.01191V4.81082H10.7523V2.98926H3.25742V4.81082H6.09408V6.01191C4.33977 6.08519 2.03516 6.37747 2.03516 7.14596C2.03516 7.91444 4.33977 8.20672 6.09408 8.28V12.1785H7.91565V8.28C9.66995 8.20672 11.9746 7.91444 11.9746 7.14596ZM10.367 7.67945C9.47067 7.86358 8.27685 7.96488 7.00497 7.96488C5.73309 7.96488 4.53926 7.86358 3.64291 7.67945C2.59875 7.46502 2.3702 7.22172 2.3702 7.14596C2.3702 7.07019 2.59896 6.8271 3.64291 6.61246C4.3213 6.47317 5.17012 6.38121 6.09408 6.34488V7.55635H7.91565V6.34488C8.83961 6.38142 9.68864 6.47317 10.3668 6.61246C11.411 6.8269 11.6395 7.07019 11.6395 7.14596C11.6395 7.22172 11.4108 7.46502 10.3668 7.67945H10.367Z" fill="#298D75"/>
                </svg>
-              <span className="text-sm font-medium ml-2">
-                {balanceLoading ? '...' : balance.toLocaleString()}
-              </span>
+                             <span className="text-sm font-medium ml-2">
+                 {isInitialLoad ? '...' : balance.toLocaleString()}
+               </span>
             </div>
           </div>
         </div>

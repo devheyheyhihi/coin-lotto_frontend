@@ -277,6 +277,14 @@ export default function RoomPage() {
 
             // Update balance and refetch status
             setBalance(data.newBalance);
+            
+            // 베팅 성공 시, 서버가 반환한 newBalance로 즉시 전역 이벤트 발행
+            if (typeof window !== 'undefined' && typeof data?.newBalance === 'number') {
+                try {
+                    window.dispatchEvent(new CustomEvent('balance:update', { detail: data.newBalance }));
+                } catch {}
+            }
+            
             await fetchStatus();
 
         } catch (err) {
