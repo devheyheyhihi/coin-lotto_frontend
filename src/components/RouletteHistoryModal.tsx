@@ -28,6 +28,40 @@ export default function RouletteHistoryModal({ isOpen, onClose }: RouletteHistor
   
   const itemsPerPage = 6;
 
+  // 모바일 친화적 압축 페이지네이션 계산
+  const getPaginationItems = (
+    total: number,
+    current: number,
+    siblingCount: number = 1
+  ): Array<number | 'dots'> => {
+    // 총 페이지가 적으면 전부 노출
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+
+    const firstPage = 0;
+    const lastPage = total - 1;
+    const leftSibling = Math.max(current - siblingCount, firstPage + 1);
+    const rightSibling = Math.min(current + siblingCount, lastPage - 1);
+
+    const items: Array<number | 'dots'> = [firstPage];
+
+    if (leftSibling > firstPage + 1) {
+      items.push('dots');
+    }
+
+    for (let p = leftSibling; p <= rightSibling; p++) {
+      items.push(p);
+    }
+
+    if (rightSibling < lastPage - 1) {
+      items.push('dots');
+    }
+
+    items.push(lastPage);
+    return items;
+  };
+
   // 실제 데이터 가져오기
   const fetchHistoryData = async (page: number) => {
     setLoading(true);
@@ -152,31 +186,35 @@ export default function RouletteHistoryModal({ isOpen, onClose }: RouletteHistor
         {/* Pagination */}
         {!loading && !error && totalPages > 1 && (
           <div className="flex justify-center items-center gap-4">
-            <button 
+            <button
               onClick={handlePrevPage}
               disabled={currentPage === 0}
               className="text-white text-[5vw] disabled:text-gray-500"
             >
               ◀
             </button>
-            
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  className={`w-[6vw] h-[6vw] rounded-full text-[3vw] font-bold ${
-                    currentPage === i 
-                      ? 'bg-[#90EE90] text-black' 
-                      : 'bg-transparent border border-white text-white'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+
+            <div className="flex items-center gap-2">
+              {getPaginationItems(totalPages, currentPage, 1).map((item, idx) =>
+                item === 'dots' ? (
+                  <span key={`dots-${idx}`} className="text-white text-[3.2vw] px-1">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item)}
+                    className={`w-[6vw] h-[6vw] rounded-full text-[3vw] font-bold ${
+                      currentPage === item
+                        ? 'bg-[#90EE90] text-black'
+                        : 'bg-transparent border border-white text-white'
+                    }`}
+                  >
+                    {Number(item) + 1}
+                  </button>
+                )
+              )}
             </div>
-            
-            <button 
+
+            <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages - 1}
               className="text-white text-[5vw] disabled:text-gray-500"
