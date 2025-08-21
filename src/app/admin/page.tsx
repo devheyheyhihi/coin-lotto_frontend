@@ -151,9 +151,9 @@ const AdminPage = () => {
             throw new Error(data.message || "An unknown error occurred on the server.");
         }
         } catch (err) {
-        console.error("Failed to start draws:", err);
+            console.error("Failed to start draws:", err);
             setDrawError(`Error: ${(err as Error).message}`);
-    } finally {
+        } finally {
             setIsDrawProcessing(false);
         }
       };
@@ -263,8 +263,8 @@ const AdminPage = () => {
                     {nextRoundSuccessMessage && <p className="text-green-400 mb-4 p-3 bg-green-900/50 rounded-md">{nextRoundSuccessMessage}</p>}
         <button
             onClick={handleStartDrawAll}
-                        disabled={isDrawProcessing}
-                        className="px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-wait"
+            disabled={isDrawProcessing}
+            className="px-6 py-3 bg-red-600 text-white font-bold text-lg rounded-lg hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-wait"
         >
                         {isDrawProcessing ? 'Initiating Draws...' : 'Start Draw For All Rooms'}
         </button>
@@ -377,7 +377,7 @@ const AdminPage = () => {
                             <button
                                 onClick={stopRouletteAnimation}
                                 className="px-6 py-2 bg-red-600 text-white font-bold rounded hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed"
-                                disabled={!rouletteDrawProcessing}
+                                disabled={rouletteDrawProcessing}
                             >
                                 애니메이션 중지
                             </button>
