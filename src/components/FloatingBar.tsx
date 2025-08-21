@@ -185,7 +185,7 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
           left: `${position.x}px`,
           top: `${position.y}px`,
           width: '200px',
-          height: isExpanded ? '150px' : '21px',
+          height: isExpanded ? '150px' : '10vw',
           transition: isDragging ? 'none' : 'height 0.3s ease'
         }}
         onMouseMove={handleMouseMove}
@@ -196,21 +196,21 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
       >
       {/* Header bar */}
       <div 
-        className="flex items-center justify-between h-[21px] cursor-move"
+        className="flex items-center justify-between h-[10vw] cursor-move"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
         {/* Close/Plus button */}
         <button 
-          className="text-white text-[4.5vw] font-bold hover:text-blue-400"
+          className="text-white text-[6.5vw] font-bold hover:text-blue-400"
           onClick={handleToggleExpanded}
         >
-          {isExpanded ? '_' : '+'}
+          {isExpanded ? '–' : '+'}
         </button>
         
         {/* Balance display with Tether icon */}
         <div className="flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="16" height="16" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 10C7.76142 10 10 7.76142 10 5C10 2.23858 7.76142 0 5 0C2.23858 0 0 2.23858 0 5C0 7.76142 2.23858 10 5 10Z" fill="#298D75"/>
             <path d="M8.55271 5.10432C8.55271 4.55541 6.90655 4.34664 5.65347 4.29429V3.43637H7.67966V2.13525H2.32617V3.43637H4.35236V4.29429C3.09928 4.34664 1.45312 4.55541 1.45312 5.10432C1.45312 5.65324 3.09928 5.86201 4.35236 5.91435V8.69897H5.65347V5.91435C6.90655 5.86201 8.55271 5.65324 8.55271 5.10432ZM7.40446 5.48539C6.76421 5.61691 5.91147 5.68927 5.00299 5.68927C4.09451 5.68927 3.24177 5.61691 2.60152 5.48539C1.85569 5.33222 1.69244 5.15844 1.69244 5.10432C1.69244 5.0502 1.85584 4.87657 2.60152 4.72326C3.08608 4.62376 3.69238 4.55808 4.35236 4.53213V5.39746H5.65347V4.53213C6.31345 4.55822 6.9199 4.62376 7.40431 4.72326C8.15014 4.87642 8.31339 5.0502 8.31339 5.10432C8.31339 5.15844 8.14999 5.33222 7.40431 5.48539H7.40446Z" fill="white"/>
           </svg>
@@ -235,7 +235,7 @@ const FloatingBar: React.FC<FloatingBarProps> = ({
       {isExpanded && (
         <div 
           className="px-1/2 pb-3 overflow-y-auto cursor-default" 
-          style={{ height: '129px' }}
+          style={{ height: '118px' }}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
