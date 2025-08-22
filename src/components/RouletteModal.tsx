@@ -6,6 +6,7 @@ import RouletteSection from './RouletteSection';
 import Timer from './Timer';
 import BettingConfirmModal from './BettingConfirmModal';
 import BettingCompleteMessage from './BettingCompleteMessage';
+import RoundCanceledMessage from './RoundCanceledMessage';
 import LoginModal from './LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config';
@@ -48,6 +49,9 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
   
   // 로그인 모달 상태
   const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // 라운드 취소 메시지 상태
+  const [isRoundCanceledVisible, setIsRoundCanceledVisible] = useState(false);
   
   // 로그인이 필요한 상황 처리
   const handleLoginRequired = () => {
@@ -93,6 +97,13 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
         
         // 라운드가 없는 경우 처리
         if (!data.round) {
+          return;
+        }
+        
+        // 최근 무효 라운드 체크
+        if (data.isRecentInvalid && data.round && data.round.status === 'invalid') {
+          console.log('🚫 Recent invalid round detected in RouletteModal, showing canceled message');
+          setIsRoundCanceledVisible(true);
           return;
         }
         
@@ -565,6 +576,12 @@ export default function RouletteModal({ isOpen, onClose, deadline }: RouletteMod
       <BettingCompleteMessage
         isVisible={showBettingComplete}
         onHide={() => setShowBettingComplete(false)}
+      />
+
+      {/* Round Canceled Message - RouletteModal에서만 표시 */}
+      <RoundCanceledMessage 
+        isVisible={isRoundCanceledVisible}
+        onHide={() => setIsRoundCanceledVisible(false)}
       />
     </div>
   );

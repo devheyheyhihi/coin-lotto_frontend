@@ -191,7 +191,13 @@ const AdminPage = () => {
             const data = await response.json();
             
             if (response.ok) {
-                setRouletteDrawSuccess(`🎉 추첨 완료! 당첨번호: ${data.result.winningNumber} (${data.result.winningType}) | 당첨자: ${data.result.totalWinners}명 | 총 배당금: ${data.result.totalPayout.toFixed(2)} USDT`);
+                if (data.success === false && data.result?.status === 'invalid') {
+                    // 무효 라운드 처리
+                    setRouletteDrawSuccess(`🚫 라운드 무효! HIGH 또는 LOW 중 한쪽에 베팅이 없어 모든 베팅을 환불했습니다. (환불된 베팅: ${data.result.refundedBets}건, 총 환불금액: ${data.result.totalRefunded.toFixed(2)} USDT)`);
+                } else if (data.success) {
+                    // 정상 추첨 완료
+                    setRouletteDrawSuccess(`🎉 추첨 완료! 당첨번호: ${data.result.winningNumber} (${data.result.winningType}) | 당첨자: ${data.result.totalWinners}명 | 총 배당금: ${data.result.totalPayout.toFixed(2)} USDT`);
+                }
                 
                 // 1초 후 상태 새로고침
                 setTimeout(() => {

@@ -86,6 +86,10 @@ export default function Home() {
         const response = await fetch(`${API_BASE_URL}/api/roulette/current`);
         if (response.ok) {
           const data = await response.json();
+          
+          // 최근 무효 라운드 체크는 RouletteModal에서 처리
+          // 메인 페이지에서는 deadline만 관리
+          
           if (data.round && data.round.status === 'betting') {
             setRouletteDeadline(data.deadline);
           } else {
@@ -242,6 +246,7 @@ export default function Home() {
           deadline={rouletteDeadline} // 룰렛 전용 deadline 사용
         />
       )}
+
     </div>
   );
 }

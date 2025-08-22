@@ -348,7 +348,7 @@ export default function RoomPage() {
                     
                     <Timer 
                         deadline={lotteryStatus?.status === 'OPEN' ? lotteryStatus.deadline : null}
-                        containerClassName="text-4xl md:text-5xl text-center font-['LABDigital'] py-2 text-black md:text-cyan-400 flex justify-center"
+                        containerClassName="text-4xl md:text-5xl text-center font-['LABDigital'] py-2 text-cyan-400 flex justify-center"
                         enableMobileWarning={true}
                     />
 
