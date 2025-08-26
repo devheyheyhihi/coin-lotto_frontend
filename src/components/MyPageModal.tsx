@@ -9,6 +9,7 @@ interface HistoryItem {
     roomName: string;
     roundNumber: number;
     wasWinner: boolean;
+    result: string; // 'Win', 'Lose', 또는 'Pending'
 }
 interface Room {
     id: string;
@@ -199,12 +200,22 @@ const MyPageModal = ({ onClose }: MyPageModalProps) => {
                             : filteredHistory.length > 0 ? (
                                 <ul className="space-y-3 pr-2">
                                     {filteredHistory.map((item, index) => (
-                                        <li key={index} className={`p-4 rounded-md flex justify-between items-center text-black ${item.wasWinner ? 'bg-[#FFE100] border border-yellow-500' : 'bg-gray-700/50'}`}>
+                                        <li key={index} className={`p-4 rounded-md flex justify-between items-center text-black ${
+                                            item.result === 'Win' ? 'bg-[#FFE100] border border-yellow-500' : 
+                                            item.result === 'Pending' ? 'bg-blue-700/50 border border-blue-400' : 
+                                            'bg-gray-700/50'
+                                        }`}>
                                             <div className="flex items-center gap-4">
                                                 <span className="bg-[#040404] text-white text-center font-bold rounded-md px-3 py-2">Round #{item.roundNumber}</span>
                                                 <div><p className="font-semibold">{item.roomName}</p></div>
                                             </div>
-                                            <span className={`text-2xl font-bold ${item.wasWinner ? 'text-black' : 'text-gray-400'}`}>{item.wasWinner ? 'WIN' : 'LOSE'}</span>
+                                            <span className={`text-2xl font-bold ${
+                                                item.result === 'Win' ? 'text-black' : 
+                                                item.result === 'Pending' ? 'text-blue-200' : 
+                                                'text-gray-400'
+                                            }`}>
+                                                {item.result === 'Pending' ? '⏳' : item.result.toUpperCase()}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>

@@ -9,6 +9,7 @@ interface HistoryItem {
     roomName: string;
     ticketPrice: string;
     wasWinner: boolean;
+    result: string; // 'Win', 'Lose', 또는 'Pending'
 }
 
 export default function HistoryPage() {
@@ -105,11 +106,15 @@ export default function HistoryPage() {
                                                 </p>
                                                 <p className="text-sm text-gray-400">Ticket Price: {item.ticketPrice} USDT</p>
                                             </div>
-                                            {item.wasWinner && (
-                                                <span className="text-lg font-bold bg-yellow-500 text-black px-3 py-1 rounded-full">
-                                                    🎉 WINNER
-                                                </span>
-                                            )}
+                                            <span className={`text-lg font-bold px-3 py-1 rounded-full ${
+                                                item.result === 'Win' ? 'bg-yellow-500 text-black' :
+                                                item.result === 'Pending' ? 'bg-blue-500 text-white' :
+                                                'bg-gray-600 text-gray-300'
+                                            }`}>
+                                                {item.result === 'Win' ? '🎉 WINNER' :
+                                                 item.result === 'Pending' ? '⏳' :
+                                                 '❌ LOSE'}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
